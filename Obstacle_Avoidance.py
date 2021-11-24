@@ -1,13 +1,15 @@
 from dronekit import connect, VehicleMode, LocationGlobalRelative, LocationGlobal, Command
 from pymavlink import mavutil
+from dronekit_sitl import SITL
 import time
 import argparse
-parser = argparse.ArgumentParser()
-parser.add_argument('--connect', default='127.0.0.1:14550')
+import numpy as np
+parser = argparse.ArgumentParser(description='commands')
+parser.add_argument('--connect', default='127.0.0.1:14551')
 args = parser.parse_args()
-
+connection_string = args.connect
 # Connect to the Vehicle
-print ('Connecting to vehicle on: %s' % args.connect)
+print ('Connecting to vehicle on: %s' % connection_string)
 vehicle = connect(args.connect, baud=921600, wait_ready=True)
 #921600 is the baudrate that you have set in the mission plannar or qgc
 def arm_and_takeoff(aTargetAltitude):
@@ -37,6 +39,356 @@ def arm_and_takeoff(aTargetAltitude):
             print("Reached target altitude")
             break
         time.sleep(1)
-#####Class for obstacle_avoidance continous flight
-###For flight control drone will move until it g
+class Continue_movement:
+    def __init__(self):
+        self.velocity_x = 0
+        self.velocity_y = 0
+        self.velocity_z = 0
+        self.current_loc = [0, 0]
+        self.new_location = 0 #This is to make sure the drone doesnt travel more than 100 yards in the forward direction of the field
+    def forward_velocity(self, velocity_x_input, duration_input):
+        self.velocity_x = velocity_x_input
+        self.velocity_y = 0
+        self.velocity_z = 0
+        self.duration = duration_input
+        global starting_x_location
+        starting_x_location = int(vehicle.location.local_frame.north)
+        msg = vehicle.message_factory.set_position_target_local_ned_encode(
+            0,  # time_boot_ms (not used)
+            0, 0,  # target system, target component
+            mavutil.mavlink.MAV_FRAME_BODY_NED,
+            # frame Needs to be MAV_FRAME_BODY_NED for forward/back left/right control.
+            0b0000111111000111,  # type_mask
+            0, 0, 0,  # x, y, z positions (not used)
+            self.velocity_x, self.velocity_y, self.velocity_z,  # m/s
+            0, 0, 0,  # x, y, z acceleration
+            0, 0)
+        for x in range(0, duration_input):
+            print("Flying forwards")
+            x_loc = int(vehicle.location.local_frame.north)
+            y_loc = int(vehicle.location.local_frame.east)
+            self.current_loc = [x_loc, y_loc]
+            print("Current location is", self.current_loc)
+            self.new_location=self.current_loc[0]-starting_x_location
+            if self.new_location >98:
+                print("Reach maximum threshold on distance, cant continue")
+                break
+            vehicle.send_mavlink(msg)
+            time.sleep(1)
+        print("Time to land")
+    def backwards_velocity(self, velocity_negative_x_input,duration_input):
+        self.velocity_x = velocity_negative_x_input*-1
+        self.velocity_y = 0
+        self.velocity_z = 0
+        self.duration = duration_input
+        msg = vehicle.message_factory.set_position_target_local_ned_encode(
+            0,  # time_boot_ms (not used)
+            0, 0,  # target system, target component
+            mavutil.mavlink.MAV_FRAME_BODY_NED,
+            # frame Needs to be MAV_FRAME_BODY_NED for forward/back left/right control.
+            0b0000111111000111,  # type_mask
+            0, 0, 0,  # x, y, z positions (not used)
+            self.velocity_x, self.velocity_y, self.velocity_z,  # m/s
+            0, 0, 0,  # x, y, z acceleration
+            0, 0)
+        for x in range(0, duration_input):
+            print("Flying backwards")
+            starting_x_loc = int(vehicle.location.local_frame.north)
+            starting_y_loc = int(vehicle.location.local_frame.east)
+            self.current_loc = [starting_x_loc, starting_y_loc]
+            self.new_location = self.current_loc[0] - starting_x_location
+            print("Current location is", self.current_loc)
+            vehicle.send_mavlink(msg)
+            time.sleep(1)
+    def right_velocity(self, velocity_right_input,duration_input):
+        self.velocity_x = 0
+        self.velocity_y = velocity_right_input
+        self.velocity_z = 0
+        self.duration = duration_input
+        msg = vehicle.message_factory.set_position_target_local_ned_encode(
+            0,  # time_boot_ms (not used)
+            0, 0,  # target system, target component
+            mavutil.mavlink.MAV_FRAME_BODY_NED,
+            # frame Needs to be MAV_FRAME_BODY_NED for forward/back left/right control.
+            0b0000111111000111,  # type_mask
+            0, 0, 0,  # x, y, z positions (not used)
+            self.velocity_x, self.velocity_y, self.velocity_z,  # m/s
+            0, 0, 0,  # x, y, z acceleration
+            0, 0)
+        for x in range(0, duration_input):
+            print("Flying right")
+            starting_x_loc = int(vehicle.location.local_frame.north)
+            starting_y_loc = int(vehicle.location.local_frame.east)
+            self.current_loc = [starting_x_loc, starting_y_loc]
+            self.new_location = self.current_loc[0] - starting_x_location
+            print("Current location is", self.current_loc)
+            vehicle.send_mavlink(msg)
+            time.sleep(1)
+    def left_velocity(self, velocity_negative_left_input,duration_input):
+        self.velocity_x = 0
+        self.velocity_y = velocity_negative_left_input*-1
+        self.velocity_z = 0
+        self.duration = duration_input
+        msg = vehicle.message_factory.set_position_target_local_ned_encode(
+            0,  # time_boot_ms (not used)
+            0, 0,  # target system, target component
+            mavutil.mavlink.MAV_FRAME_BODY_NED,
+            # frame Needs to be MAV_FRAME_BODY_NED for forward/back left/right control.
+            0b0000111111000111,  # type_mask
+            0, 0, 0,  # x, y, z positions (not used)
+            self.velocity_x, self.velocity_y, self.velocity_z,  # m/s
+            0, 0, 0,  # x, y, z acceleration
+            0, 0)
+        for x in range(0, duration_input):
+            print("Flying left")
+            starting_x_loc = int(vehicle.location.local_frame.north)
+            starting_y_loc = int(vehicle.location.local_frame.east)
+            self.current_loc = [starting_x_loc, starting_y_loc]
+            self.new_location = self.current_loc[0] - starting_x_location
+            print("Current location is", self.current_loc)
+            vehicle.send_mavlink(msg)
+            time.sleep(1)
+    def right_diagonol_velocity(self, velocity_diagonol_input,duration_input):
+        self.velocity_x = velocity_diagonol_input
+        self.velocity_y = velocity_diagonol_input
+        self.velocity_z = 0
+        self.duration = duration_input
+        msg = vehicle.message_factory.set_position_target_local_ned_encode(
+            0,  # time_boot_ms (not used)
+            0, 0,  # target system, target component
+            mavutil.mavlink.MAV_FRAME_BODY_NED,
+            # frame Needs to be MAV_FRAME_BODY_NED for forward/back left/right control.
+            0b0000111111000111,  # type_mask
+            0, 0, 0,  # x, y, z positions (not used)
+            self.velocity_x, self.velocity_y, self.velocity_z,  # m/s
+            0, 0, 0,  # x, y, z acceleration
+            0, 0)
+        for x in range(0, duration_input):
+            print("Flying right diagonal")
+            starting_x_loc = int(vehicle.location.local_frame.north)
+            starting_y_loc = int(vehicle.location.local_frame.east)
+            self.current_loc = [starting_x_loc, starting_y_loc]
+            self.new_location = self.current_loc[0] - starting_x_location
+            print("Current location is", self.current_loc)
+            vehicle.send_mavlink(msg)
+            time.sleep(1)
+    def left_diagonol_velocity(self, velocity_diagonol_input,duration_input):
+        self.velocity_x = velocity_diagonol_input
+        self.velocity_y = velocity_diagonol_input*-1
+        self.velocity_z = 0
+        self.duration = duration_input
+        msg = vehicle.message_factory.set_position_target_local_ned_encode(
+            0,  # time_boot_ms (not used)
+            0, 0,  # target system, target component
+            mavutil.mavlink.MAV_FRAME_BODY_NED,
+            # frame Needs to be MAV_FRAME_BODY_NED for forward/back left/right control.
+            0b0000111111000111,  # type_mask
+            0, 0, 0,  # x, y, z positions (not used)
+            self.velocity_x, self.velocity_y, self.velocity_z,  # m/s
+            0, 0, 0,  # x, y, z acceleration
+            0, 0)
+        for x in range(0, duration_input):
+            print("Flying left diagonal")
+            starting_x_loc = int(vehicle.location.local_frame.north)
+            starting_y_loc = int(vehicle.location.local_frame.east)
+            self.current_loc = [starting_x_loc, starting_y_loc]
+            print("Current location is", self.current_loc)
+            self.new_location = self.current_loc[0] - starting_x_location
+            vehicle.send_mavlink(msg)
+            time.sleep(1)
+    def right_neg_diagonol_velocity(self, velocity_diagonol_input,duration_input):
+        self.velocity_x = velocity_diagonol_input
+        self.velocity_y = velocity_diagonol_input*-1
+        self.velocity_z = 0
+        self.duration = duration_input
+        msg = vehicle.message_factory.set_position_target_local_ned_encode(
+            0,  # time_boot_ms (not used)
+            0, 0,  # target system, target component
+            mavutil.mavlink.MAV_FRAME_BODY_NED,
+            # frame Needs to be MAV_FRAME_BODY_NED for forward/back left/right control.
+            0b0000111111000111,  # type_mask
+            0, 0, 0,  # x, y, z positions (not used)
+            self.velocity_x, self.velocity_y, self.velocity_z,  # m/s
+            0, 0, 0,  # x, y, z acceleration
+            0, 0)
+        for x in range(0, duration_input):
+            print("Flying negative right diagonal")
+            starting_x_loc = int(vehicle.location.local_frame.north)
+            starting_y_loc = int(vehicle.location.local_frame.east)
+            self.current_loc = [starting_x_loc, starting_y_loc]
+            self.new_location = self.current_loc[0] - starting_x_location
+            print("Current location is", self.current_loc)
+            vehicle.send_mavlink(msg)
+            time.sleep(1)
+    def left_neg_diagonol_velocity(self, velocity_diagonol_input,duration_input):
+        self.velocity_x = velocity_diagonol_input*-1
+        self.velocity_y = velocity_diagonol_input*-1
+        self.velocity_z = 0
+        self.duration = duration_input
+        msg = vehicle.message_factory.set_position_target_local_ned_encode(
+            0,  # time_boot_ms (not used)
+            0, 0,  # target system, target component
+            mavutil.mavlink.MAV_FRAME_BODY_NED,
+            # frame Needs to be MAV_FRAME_BODY_NED for forward/back left/right control.
+            0b0000111111000111,  # type_mask
+            0, 0, 0,  # x, y, z positions (not used)
+            self.velocity_x, self.velocity_y, self.velocity_z,  # m/s
+            0, 0, 0,  # x, y, z acceleration
+            0, 0)
+        for x in range(0, duration_input):
+            print("Flying negative left diagonal")
+            starting_x_loc = int(vehicle.location.local_frame.north)
+            starting_y_loc = int(vehicle.location.local_frame.east)
+            self.current_loc = [starting_x_loc, starting_y_loc]
+            self.new_location = self.current_loc[0] - starting_x_location
+            print("Current location is", self.current_loc)
+            vehicle.send_mavlink(msg)
+            time.sleep(1)
+def condition_yaw(heading, relative=False):
+    if relative:
+        is_relative=1 #yaw relative to direction of travel
+    else:
+        is_relative=0 #yaw is an absolute angle
+    # create the CONDITION_YAW command using command_long_encode()
+    msg = vehicle.message_factory.command_long_encode(
+        0, 0,    # target system, target component
+        mavutil.mavlink.MAV_CMD_CONDITION_YAW, #command
+        0, #confirmation
+        heading,    # param 1, yaw in degrees
+        0,          # param 2, yaw speed deg/s
+        1,          # param 3, direction -1 ccw, 1 cw
+        is_relative, # param 4, relative offset 1, absolute angle 0
+        0, 0, 0)    # param 5 ~ 7 not used
+    # send command to vehicle
+    vehicle.send_mavlink(msg)
+arm_and_takeoff(20)
+starting_x_loc = int(vehicle.location.local_frame.north)
+print("Starting x location is:",starting_x_loc)
+####Obstacle Avoidance Code
+p1 = Continue_movement()
+condition_yaw(0)
+print("Beginning obstacle avoidance sequence")
+print("Is there any obstacles on the field at all? Type in 1 for yes and 0 for no")
+input_answer_0=int(input())
+new_location = p1.current_loc[0] - starting_x_loc
+if input_answer_0==0: #Case:If there is no obstacles at all on the field
+    while True:
+        if new_location >98:
+            break
+        p1.forward_velocity(3,1)
+        new_location = p1.current_loc[0] - starting_x_loc
+    print("Reached 100 yard threshold")
+    print("Now let's land")
+    vehicle.mode = VehicleMode("LAND")
+    vehicle.close()
+else:
+    print("User error")
+if input_answer_0==1: #Case where the camera indicates that there are cameras initially on the field
+    p1.forward_velocity(3,3)
+    if new_location >98: #Checking to see if the location exceeds the 100 yard mark
+        print("Reached 100 yard threshold")
+    else:
+        print("Is there an obstacle nearby, type in 1 for yes and 0 for no")
+        input_answer_1= int(input())
+        if input_answer_1==0:#Case that goes if there is no intitial obstacle nearby when the drone goes forward
+            while True:
+                p1.forward_velocity(1,2)
+                while_breaker=int(input("Is there an obstacle nearby? 1 for yes and 0 for no\n")) #Checking if the drone can still go straight
+                if while_breaker==1: #If obstacle identified
+                    print("Obstacle nearby identified")
+                    break
+                elif p1.new_location >98:
+                    print("100 yard threshold met")
+                    print("Now let's land")
+                    vehicle.mode = VehicleMode("LAND")
+                    vehicle.close()
+                else:
+                    continue
+            input_answer_b=int(input("Type in obstacle location: 2-obstacle to the right, 3- obstacle to the left, 4-obstacle is directly in front\n"))
+            if input_answer_b==2 or input_answer_b==3:
+                input_answer_b1=0
+                while input_answer_b1==0:
+                    p1.forward_velocity(1,2)
+                    input_answer_b1=int(input("Is there an obstacle nearby? 1-yes, 0-no\n"))
+                input_answer_b2=int(input("Type in obstacle location: 2-obstacle to the right, 3- obstacle to the left, 4-obstacle is directly in front\n"))
+                if input_answer_b2==4:
+                    input_answer_b3=int(input("Is it best to move to the left or the right, 1 for left and 0 for right\n"))
+                    while_loop_stopper_b=0 #Defining the signal that will stope the while loop for moving left diagnolly
+                    if input_answer_b3==1:
+                        while True:
+                            p1.left_diagonol_velocity(1,2)
+                            while_loop_stopper_b = int(input("Is it clear to proceed forward, 1 yes and 0 no\n"))
+                            if while_loop_stopper_b==1:
+                                print("test")
+                                break
+                            while True:
+                                p1.forward_velocity(1,1)
+                                direction_answer_b=int(input("Is there an obstacle nearby? 1-yes, 0-no\n"))
+                                if direction_answer_b == 1:
+                                    print("test 2")
+                                    break
+        elif input_answer_1==1: #Case that there is an obstacle in front of the drone after it goes forward initially
+            input_answer_2=int(input("Type in obstacle location: 2-obstacle to the right, 3- obstacle to the left, 4-obstacle is directly in front\n"))
+            if input_answer_2==2 or input_answer_2==3:
+                input_answer_3=0
+                while input_answer_3==0:
+                    p1.forward_velocity(3,3)
+                    input_answer_3=int(input("Is there an obstacle nearby? 1-yes, 0-no\n"))
+                input_answer_4=int(input("Type in obstacle location: 2-obstacle to the right, 3- obstacle to the left, 4-obstacle is directly in front\n"))
+                if input_answer_4==4:
+                    input_answer_5=int(input("Is it best to move to the left or the right, 1 for left and 0 for right\n"))
+                    while_loop_stopper=0 #Defining the signal that will stope the while loop for moving left diagnolly
+                    if input_answer_5==1:
+                        while True:
+                            p1.left_diagonol_velocity(1,1)
+                            while_loop_stopper = int(input("Is it clear to move forward, 1 yes and 0 no\n"))
+                            if while_loop_stopper==1:
+                                print("Time to go forward")
+                                break
+                            while True:
+                                p1.forward_velocity(1,1)
+                                direction_answer_2=int(input("Is there an obstacle nearby? 1-yes, 0-no\n"))
+                                if direction_answer_2 == 1:
+                                    print("test 2")
+                                    break
+                    else:
+                        print("User input error")
+
+                else:
+                    print("User input error")
+
+            elif input_answer_2==4: #Case where there is an obstacle nearby and it is front of you so you have to move to the right
+                direction_answer_1= int(input("Is it best to move to the left or the right, 1 for left and 0 for right\n"))
+                while True:
+                    p1.left_diagonol_velocity(1,1)
+                    while_loop_stopper_c = int(input("Is it clear to move forward, 1 yes and 0 no\n"))
+                    if while_loop_stopper_c == 1:
+                        print("Time to go forward")
+                        break
+                    elif p1.new_location>98:
+                        print("Reach 100 yard threshold")
+                        break
+                    elif while_loop_stopper_c == 0:
+                        continue
+                    else:
+                        print("User Error")
+                while True:
+                    p1.forward_velocity(1, 1)
+                    direction_answer_c = int(input("Is there an obstacle nearby? 1-yes, 0-no\n"))
+                    if direction_answer_c == 1:
+                        print("test 2")
+                        break
+
+
+            else:
+                print("User error")
+
+
+
+        else:
+            print("User input error")
+
+
+
+
 
