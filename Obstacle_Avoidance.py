@@ -47,19 +47,20 @@ class Continue_movement:
         self.current_loc = [0, 0]
         self.new_location = 0 #This is to make sure the drone doesnt travel more than 100 yards in the forward direction of the field
         self.side_boundary_location =0 #This is to make sure the drone doesnt travel off of the 50 yard field boundary
-    def forward_velocity(self, velocity_x_input, duration_input):
-        self.velocity_x = velocity_x_input
-        self.velocity_y = 0
-        self.velocity_z = 0
-        self.duration = duration_input
-        global starting_x_location #To allow the x location variable is used in all functions
-        global starting_y_location #To allow the y location variable to be used in all functions
+    def starting_loc_function(self):
+        global starting_x_location  # To allow the x location variable is used in all functions
+        global starting_y_location  # To allow the y location variable to be used in all functions
         starting_x_location = int(vehicle.location.local_frame.north)
         starting_y = int(vehicle.location.local_frame.east)
         if starting_y<0:
             starting_y_location = starting_y*-1
         else:
             starting_y_location=starting_y
+    def forward_velocity(self, velocity_x_input, duration_input):
+        self.velocity_x = velocity_x_input
+        self.velocity_y = 0
+        self.velocity_z = 0
+        self.duration = duration_input
         msg = vehicle.message_factory.set_position_target_local_ned_encode(
             0,  # time_boot_ms (not used)
             0, 0,  # target system, target component
@@ -77,6 +78,7 @@ class Continue_movement:
             self.current_loc = [x_loc, y_loc]
             print("Current location is", self.current_loc)
             self.new_location=self.current_loc[0]-starting_x_location
+            print("New_Location:",self.new_location)
             self.side_boundary_location=self.current_loc[1]-starting_y_location
             if self.new_location >98:
                 print("Reach maximum threshold on distance, cant continue")
@@ -416,10 +418,11 @@ def second_iteration_code():
 
 
 arm_and_takeoff(20)
+p1 = Continue_movement()
+p1.starting_loc_function()
 starting_x_loc = int(vehicle.location.local_frame.north)
 print("Starting x location is:",starting_x_loc)
 ####Obstacle Avoidance Code
-p1 = Continue_movement()
 condition_yaw(0)
 print("Beginning obstacle avoidance sequence")
 print("Is there any obstacles on the field at all? Type in 1 for yes and 0 for no")
@@ -451,14 +454,15 @@ if input_answer_0==1: #Case where the camera indicates that there are cameras in
                 if while_breaker==1: #If obstacle identified
                     print("Obstacle nearby identified")
                     break
-                elif p1.new_location >98:
-                    print("100 yard threshold met")
-                    print("Now let's land")
-                    vehicle.mode = VehicleMode("LAND")
-                    vehicle.close()
-                    break
                 elif while_breaker==0:
-                    continue
+                    if p1.new_location >98:
+                        print("100 yard threshold met")
+                        print("Now let's land")
+                        vehicle.mode = VehicleMode("LAND")
+                        vehicle.close()
+                        break
+                    else:
+                        continue
                 else:
                     print("User Error")
             if p1.new_location >98:
