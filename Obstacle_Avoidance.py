@@ -75,9 +75,9 @@ class Continue_movement:
             y_loc = int(vehicle.location.local_frame.east)
             self.current_loc = [x_loc, y_loc]
             print("Current location is", self.current_loc)
-            self.new_location=self.current_loc[0]-starting_x_location
+            self.new_location=self.current_loc[0]-starting_x_location #This is to update the distance traveled in the x axis
             print("X Distance Traveled :",self.new_location)
-            self.side_boundary_location=self.current_loc[1]-starting_y_location
+            self.side_boundary_location=self.current_loc[1]-starting_y_location #This is to make sure the drone does not travel out of the 50 yard boundary of the field
             print("Boundary Condition  :",self.side_boundary_location)
             vehicle.send_mavlink(msg)
             time.sleep(1)
@@ -288,7 +288,7 @@ def obstacle_identified_function(): #Function to handle the case that and obstac
                     vehicle.mode = VehicleMode("LAND")
                     vehicle.close()
                     sys.exit()
-                elif p1.side_boundary_location > 25 or p1.side_boundary_location < -25:  # Making sure not to exceed 50 yard boundary from the center of the field
+                elif p1.side_boundary_location < -25:  # Making sure not to exceed 50 yard boundary from the center of the field
                     print("Must proceed straight have met the 50 yard boundary")
                     break
                 while_loop_stopper_b = int(input("Is it clear to proceed forward, 1 yes and 0 no\n"))
@@ -298,7 +298,7 @@ def obstacle_identified_function(): #Function to handle the case that and obstac
                 else:
                     print("Continue moving left")
                     continue
-            second_iteration_code()
+            second_iteration_code_b()
         else: #Choose to move right diagonally if you dont type in 1
             while True:
                 p1.right_diagonol_velocity(1, 2)
@@ -308,8 +308,8 @@ def obstacle_identified_function(): #Function to handle the case that and obstac
                     vehicle.mode = VehicleMode("LAND")
                     vehicle.close()
                     sys.exit()
-                elif p1.side_boundary_location > 25 or p1.side_boundary_location < -25:  # Making sure not to exceed 50 yard boundary from the center of the field
-                    print("Must proceed straight have met the 50 yard boundary")
+                elif p1.side_boundary_location > 25:  # Making sure not to exceed 50 yard boundary from the center of the field
+                    print("Musts proceed straight have met the 50 yard boundary")
                     break
                 while_loop_stopper_b2 = int(input("Is it clear to proceed forward, 1 yes and 0 no\n"))
                 if while_loop_stopper_b2 == 1:
@@ -318,7 +318,7 @@ def obstacle_identified_function(): #Function to handle the case that and obstac
                 else:
                     print("Continue moving right")
                     continue
-            second_iteration_code()
+            second_iteration_code_b()
 def second_iteration_code(): #Code to hanlde case where there is not an initial obstacle identified in the drone flight path
     p1.forward_velocity(3, 2)
     if p1.new_location > 98:  # Checking to see if the location exceeds the 100 yard mark
@@ -346,6 +346,34 @@ def second_iteration_code(): #Code to hanlde case where there is not an initial 
                 print("User Error, try again")
                 continue
         obstacle_identified_function()
+def second_iteration_code_b(): #This is to help when it comes to the drone wanting to do a zig zag pattern
+    if p1.new_location > 98:  # Checking to see if the location exceeds the 100 yard mark
+        print("Reached 100 yard threshold")
+        print("Now let's land")
+        vehicle.mode = VehicleMode("LAND")
+        vehicle.close()
+        sys.exit()
+    else:
+        while True:
+            print("Is there an obstacle nearby, type in 1 for yes and 0 for no")
+            input_answer_1 = int(input())
+            if input_answer_1 == 0:  # Case that goes if there is no intitial obstacle nearby when the drone goes forward
+                if p1.new_location > 98:
+                    print("100 yard threshold met")
+                    print("Now let's land")
+                    vehicle.mode = VehicleMode("LAND")
+                    vehicle.close()
+                    sys.exit()
+                else:
+                    p1.forward_velocity(1, 2)
+            elif input_answer_1 == 1:
+                break
+            else:
+                print("User Error, try again")
+                continue
+        obstacle_identified_function()
+
+
 ####Main Code
 arm_and_takeoff(6) #Taking off to the minimum required altitude
 p1 = Continue_movement() #Making the object from the continue movement class
@@ -369,9 +397,7 @@ if input_answer_0==0: #Case:If there is no obstacles at all on the field
     print("Now let's land")
     vehicle.mode = VehicleMode("LAND")
     vehicle.close()
-else:
-    print("User error")
-if input_answer_0==1: #Case where the camera indicates that there are obstacles initially on the fiel
+elif input_answer_0==1: #Case where the camera indicates that there are obstacles initially on the fiel
     if new_location >98: #Checking to see if the location exceeds the 100 yard mark
         print("Reached 100 yard threshold")
         print("100 yard threshold met")
@@ -390,6 +416,9 @@ if input_answer_0==1: #Case where the camera indicates that there are obstacles 
 
         else:
             print("User input error, you done messed up bro")
+else:
+    print("User input error, you messed bro")
+
 
 
 
