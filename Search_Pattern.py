@@ -1,14 +1,15 @@
 from dronekit import connect, VehicleMode, LocationGlobalRelative, LocationGlobal, Command
 from pymavlink import mavutil
+from dronekit_sitl import SITL
 import time
 import argparse
 import numpy as np
-parser = argparse.ArgumentParser()
-parser.add_argument('--connect', default='127.0.0.1:14550')
+parser = argparse.ArgumentParser(description='commands')
+parser.add_argument('--connect', default='127.0.0.1:14551')
 args = parser.parse_args()
-
+connection_string = args.connect
 # Connect to the Vehicle
-print ('Connecting to vehicle on: %s' % args.connect)
+print ('Connecting to vehicle on: %s' % connection_string)
 vehicle = connect(args.connect, baud=921600, wait_ready=True)
 #921600 is the baudrate that you have set in the mission plannar or qgc
 def arm_and_takeoff(aTargetAltitude):
@@ -46,6 +47,8 @@ class Movement:
         self.duration   = 0
         self.loc = [0,0] #Test code
         self.signal = 0
+        self.new_location = 0
+        self.side_boundary_location = 0
 
     def arm_and_takeoff(self,aTargetAltitude):
             print("Basic pre-arm checks")
@@ -78,6 +81,12 @@ class Movement:
                     print("Reached target altitude")
                     break
                 time.sleep(1)
+    def starting_loc_function(self):  # To get the starting location of the drone
+        global starting_x_location  # To allow the x location variable is used in all functions
+        global starting_y_location  # To allow the y location variable to be used in all functions
+        starting_x_location = int(vehicle.location.local_frame.north)
+        starting_y = int(vehicle.location.local_frame.east)
+        starting_y_location = starting_y
     def forward_velocity(self, velocity_x_input,duration_input):
         self.velocity_x = velocity_x_input
         self.velocity_y = 0
@@ -98,20 +107,11 @@ class Movement:
             starting_x_loc = int(vehicle.location.local_frame.north)
             starting_y_loc = int(vehicle.location.local_frame.east)
             self.loc = [starting_x_loc, starting_y_loc]
+            self.new_location = self.loc[0] - starting_x_location
+            self.side_boundary_location = self.loc[1] - starting_y_location
             print("Current location is", self.loc)
-            if self.loc[0] > 95: #This is to stop the drone while it is going through its search pattern
-                print("Nearby x location")
-                self.signal = 1
-                break
-            elif self.loc[1] > 41:
-                print("Nearby y location")
-                self.signal = 1
-                break
-            else:
-                vehicle.send_mavlink(msg)
-                time.sleep(1)
-        print("broke out of for loop")
-        time.sleep(1)
+            vehicle.send_mavlink(msg)
+            time.sleep(1)
     def backwards_velocity(self, velocity_negative_x_input,duration_input):
         self.velocity_x = velocity_negative_x_input*-1
         self.velocity_y = 0
@@ -133,19 +133,8 @@ class Movement:
             starting_y_loc = int(vehicle.location.local_frame.east)
             self.loc = [starting_x_loc, starting_y_loc]
             print("Current location is", self.loc)
-            if self.loc[0] > 95:  # This is to stop the drone while it is going through its search pattern
-                print("Nearby x location")
-                self.signal = 1
-                break
-            elif self.loc[1] > 41:
-                print("Nearby y location")
-                self.signal = 1
-                break
-            else:
-                vehicle.send_mavlink(msg)
-                time.sleep(1)
-        print("broke out of for loop")
-        time.sleep(1)
+            vehicle.send_mavlink(msg)
+            time.sleep(1)
     def right_velocity(self, velocity_right_input,duration_input):
         self.velocity_x = 0
         self.velocity_y = velocity_right_input
@@ -166,20 +155,11 @@ class Movement:
             starting_x_loc = int(vehicle.location.local_frame.north)
             starting_y_loc = int(vehicle.location.local_frame.east)
             self.loc = [starting_x_loc, starting_y_loc]
+            self.new_location = self.loc[0] - starting_x_location
+            self.side_boundary_location = self.loc[1] - starting_y_location
             print("Current location is", self.loc)
-            if self.loc[0] > 95:  # This is to stop the drone while it is going through its search pattern
-                print("Nearby x location")
-                self.signal = 1
-                break
-            elif self.loc[1] > 41:
-                print("Nearby y location")
-                self.signal = 1
-                break
-            else:
-                vehicle.send_mavlink(msg)
-                time.sleep(1)
-    print("broke out of for loop")
-    time.sleep(1)
+            vehicle.send_mavlink(msg)
+            time.sleep(1)
     def left_velocity(self, velocity_negative_left_input,duration_input):
         self.velocity_x = 0
         self.velocity_y = velocity_negative_left_input*-1
@@ -200,20 +180,11 @@ class Movement:
             starting_x_loc = int(vehicle.location.local_frame.north)
             starting_y_loc = int(vehicle.location.local_frame.east)
             self.loc = [starting_x_loc, starting_y_loc]
+            self.new_location = self.loc[0] - starting_x_location
+            self.side_boundary_location = self.loc[1] - starting_y_location
             print("Current location is", self.loc)
-            if self.loc[0] > 95:  # This is to stop the drone while it is going through its search pattern
-                print("Nearby x location")
-                self.signal = 1
-                break
-            elif self.loc[1] > 41:
-                print("Nearby y location")
-                self.signal = 1
-                break
-            else:
-                vehicle.send_mavlink(msg)
-                time.sleep(1)
-        print("broke out of for loop")
-        time.sleep(1)
+            vehicle.send_mavlink(msg)
+            time.sleep(1)
     def right_diagonol_velocity(self, velocity_diagonol_input,duration_input):
         self.velocity_x = velocity_diagonol_input
         self.velocity_y = velocity_diagonol_input
@@ -291,6 +262,76 @@ class Movement:
             vehicle.send_mavlink(msg)
             time.sleep(1)
 
+def Logo_y_search():
+    if p1.loc[1] <0:
+        while True:
+            if p1.loc[1] >27:
+                print("Nearby Logo y Location")
+                break
+            else:
+                p1.right_velocity(1,1)
+    elif p1.loc[1]>30:
+        while True:
+            if p1.loc[1] >26 and p1.loc[1] <30:
+                print("Nearby Logo y Location")
+                break
+            else:
+                p1.left_velocity(1,1)
+    else:
+        while True:
+            if p1.loc[1] >27:
+                print("Nearby Logo y Location")
+                break
+            else:
+                p1.right_velocity(1,1)
+print("Found x and y area of logo!")
+def Search_pattern_straight():
+    if p1.loc[0]>76:
+        print("Nearby Logo x location")
+        Logo_y_search()
+    else:
+        p1.forward_velocity(15,1)
+        if p1.loc[0]>76:
+            print("Nearby Logo x location")
+            print("Now to start homing in on the y logo position")
+            Logo_y_search()
+        else:
+            p1.forward_velocity(15, 1)
+def Search_pattern_left():
+    p1 =Movement()
+    current_y_location_ = p1.loc[1]
+    while True:
+            current_y_location_1 = p1.loc[1] - current_y_location_
+            if current_y_location_1 >48 or current_y_location_1<-48:
+                print("Drone met 50 yard boundary time to go forward")
+                break
+            elif p1.loc[0]>76:
+                print("Nearby Logo x location")
+                break
+            else:
+                p1.left_velocity(2, 1)
+    if p1.loc[0]>76:
+        print("Time to start homing in on the logo y position")
+        Logo_y_search()
+    else:
+        Search_pattern_straight()
+def Search_pattern_right():
+    current_y_location_=p1.loc[1]
+    while True:
+        current_y_location_1=p1.loc[1]-current_y_location_
+        if current_y_location_1 >48 or current_y_location_1<-48:
+                print("Drone met 50 yard boundary time to go forward")
+                break
+        elif p1.loc[0]>76:
+                print("Nearby Logo x location")
+                break
+        else:
+                p1.right_velocity(2, 1)
+    if p1.loc[0] > 76:
+        print("Time to start homing in on the y position")
+        Logo_y_search()
+    else:
+        Search_pattern_straight()
 def Drone_search_pattern():
     p1 = Movement()
     p1.left_velocity(15, 10)
@@ -302,31 +343,76 @@ def Drone_search_pattern():
     p1.right_velocity(25,10)
     p1.forward_velocity(15, 3)
 
+def condition_yaw(heading, relative=False):
+    if relative:
+        is_relative=1 #yaw relative to direction of travel
+    else:
+        is_relative=0 #yaw is an absolute angle
+    # create the CONDITION_YAW command using command_long_encode()
+    msg = vehicle.message_factory.command_long_encode(
+        0, 0,    # target system, target component
+        mavutil.mavlink.MAV_CMD_CONDITION_YAW, #command
+        0, #confirmation
+        heading,    # param 1, yaw in degrees
+        0,          # param 2, yaw speed deg/s
+        1,          # param 3, direction -1 ccw, 1 cw
+        is_relative, # param 4, relative offset 1, absolute angle 0
+        0, 0, 0)    # param 5 ~ 7 not used
+    # send command to vehicle
+    vehicle.send_mavlink(msg)
+def homing_sequence():
+    stuff= 1
 #Making array that will act as the location of the logo
-logo = [100,50]
+logo = [80,30] #This logo location is defined in the bounds of 100 and 50
+condition_yaw(0) #setting the drone as straight
 #def search_sequence():
 p1 = Movement()
-p1.arm_and_takeoff(20)
+p1.arm_and_takeoff(6)
+p1.starting_loc_function()
 i = 0
 Location_x_range= np.arange(90,110,1) #Defining a range for the 100 x logo location
 Location_y_range=np.arange(40,60,1) #Defining the y range for the y logo location
      #Defining the starting location of the drone
     #Check if starting location is nearby the drone location
 print("Vehicle location local:",vehicle.location.local_frame)
-print("Here are the x range values:",Location_x_range)
+#print("Here are the x range values:",Location_x_range)
 #Initial Check
-if int(p1.loc[0]) == np.any(Location_x_range):
+if int(p1.loc[0]) >76:
         time.sleep(1)
         print("Nearby x logo location")
-elif int(p1.loc[1]) == np.any(Location_y_range):
+elif int(p1.loc[1]) >30:
         time.sleep(1)
         print("Nearby y location")
 elif int(p1.loc[0]) == np.any(Location_x_range) and int(p1.loc[1]) == np.any(Location_y_range):
         print("Nearby x and y logo, so start homing")
+        homing_sequence()
 else:
         print("Not nearby drone location,continue to perform search pattern")
-        while p1.signal!= 1:
-            p1.left_velocity(15, 10)
+        while True:
+            Search_pattern_left()
+            if p1.loc[0] > 78:  # This is to stop the drone while it is going through its search pattern
+                print("Nearby x location")
+                break
+            elif p1.loc[1] >27:
+                print("Nearby Logo y Location")
+                break
+            else:
+                print("Area not found")
+            Search_pattern_right()
+            if p1.loc[0] > 78:  # This is to stop the drone while it is going through its search pattern
+                print("Nearby x location")
+                break
+            elif p1.loc[1]>27:
+                print("Nearby Logo y Location")
+                break
+            else:
+                print("Area not found")
+
+
+
+
+"""        
+        p1.left_velocity(15, 10)
             if p1.loc[0] > 95:  # This is to stop the drone while it is going through its search pattern
                 print("Nearby x location")
                 break
@@ -400,37 +486,25 @@ else:
                 print("Area not found")
         print("area found!!!!")
         time.sleep(1)
-        #while p1.loc:
-            #current_loc = [vehicle.location.local_frame.north, vehicle.location.local_frame.east]
-            #print(current_loc)
-            #if current_loc[0] == Location_x_range:
-               # print("Nearby x logo location")
-                #break
-            #elif current_loc[1] == Location_y_range:
-                #print("Nearby y location")
-                #break
-            #elif current_loc[0] == Location_x_range and current_loc[1] == Location_y_range:
-                #print("Nearby x and y logo, so start homing")
-                #break
-            #time.sleep(1)
+        if p1.loc[1] < 0: #This is to home in on the y-logo coordinate after getting near the x area
+            while True:
+                if p1.loc[1] >50:
+                    break
+                else:
+                    print("Homing in on y coordinate")
+                    p1.right_velocity(5,10)
+        print("Y coordinate area found")
+"""
+
+
+
 
 
     #while current_loc[0]!= logo[0] & current_loc[1]!= logo[1] :
         #Check
         #p1.forward_velocity(5,2)
         #a = abs(vehicle.location.local_frame.north-logo[0])
-        """
-        p1.backwards_velocity(5,2)
-        p1.left_velocity(5, 2)
-        b = abs(vehicle.location.local_frame.east-logo[1])
-        p1.right_velocity(5,2)
-        p1.right_velocity(5, 2)
-        c = abs(vehicle.location.local_frame.east - logo[1])
-        p1.forward_velocity(40,3)
-        p1.right_velocity(25,10)
-        p1.forward_velocity(40,3)
-        p1.left_velocity(25,10) 
-        """
+
 
 
 
