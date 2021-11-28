@@ -360,8 +360,49 @@ def condition_yaw(heading, relative=False):
         0, 0, 0)    # param 5 ~ 7 not used
     # send command to vehicle
     vehicle.send_mavlink(msg)
-def homing_sequence():
-    stuff= 1
+def homing_sequence_y():
+    if p1.loc[1] > 30:
+        while True:
+            if p1.loc[1] == 29 or p1.loc[1] ==30:
+                print("Y coordinate found")
+                break
+            else:
+                p1.left_velocity(1,1)
+        print("Time to land")
+    elif p1.loc[1]<30:
+        while True:
+            if p1.loc[1] == 29 or p1.loc[1] == 30:
+                print("Y coordinate found")
+                break
+            else:
+                p1.right_velocity(1,1)
+        print("Time to land")
+    else:
+        print("Y coordinate found")
+        print("Time to land")
+def homing_sequence_x():
+    if p1.loc[0] > 80:
+        while True:
+            if p1.loc[0] ==79 or p1.loc[0] ==80:
+                print("X cordinate found")
+                break
+            else:
+                p1.backwards_velocity(1,1)
+        homing_sequence_y()
+    elif p1.loc[0]<80:
+        while True:
+            if p1.loc[0] == 79 or p1.loc[0] == 80:
+                print("X cordinate found")
+                break
+            else:
+                p1.forward_velocity(1,1)
+        homing_sequence_y()
+    else:
+        print("X cordinate found")
+        homing_sequence_y()
+
+
+
 #Making array that will act as the location of the logo
 logo = [80,30] #This logo location is defined in the bounds of 100 and 50
 condition_yaw(0) #setting the drone as straight
@@ -385,7 +426,7 @@ elif int(p1.loc[1]) >30:
         print("Nearby y location")
 elif int(p1.loc[0]) == np.any(Location_x_range) and int(p1.loc[1]) == np.any(Location_y_range):
         print("Nearby x and y logo, so start homing")
-        homing_sequence()
+        homing_sequence_x()
 else:
         print("Not nearby drone location,continue to perform search pattern")
         while True:
@@ -407,6 +448,7 @@ else:
                 break
             else:
                 print("Area not found")
+        homing_sequence_x()
 
 
 
