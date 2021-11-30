@@ -52,6 +52,7 @@ class Continue_movement:
         i=0
         starting_x_loc = vehicle.location.local_frame.north
         print("Starting x_location:",starting_x_loc)
+        print("The target is",target_input_new,"meters")
         msg = vehicle.message_factory.set_position_target_local_ned_encode(
             0,  # time_boot_ms (not used)
             0, 0,  # target system, target component
@@ -68,10 +69,12 @@ class Continue_movement:
             vehicle.send_mavlink(msg)
             new_location=vehicle.location.local_frame.north
             i = new_location-starting_x_loc
+            print("X distance traveled in meters", i)
             time.sleep(1)
+#Main Code
 arm_and_takeoff(6) #Taking off to starting elevation of 6 meters or 20 feet
 p1 = Continue_movement()
-p1.forward_velocity(1) #Traveling 20m/s forward with the while loop going
+p1.forward_velocity(1) #Traveling 1m/s forward with the while loop going
 print("30 yard mark reached")
 print("Now let's land")
 vehicle.mode = VehicleMode("LAND")
