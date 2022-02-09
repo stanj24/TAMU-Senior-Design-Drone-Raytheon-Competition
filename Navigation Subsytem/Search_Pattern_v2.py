@@ -4,6 +4,11 @@ from dronekit_sitl import SITL
 import time
 import argparse
 import numpy as np
+
+import pyrealsense2 as rs
+import cv2
+import tensorflow as tf
+
 parser = argparse.ArgumentParser(description='commands')
 parser.add_argument('--connect', default='127.0.0.1:14551')
 args = parser.parse_args()
@@ -468,10 +473,10 @@ def homing_sequence_x(): #This is to hone in on the exact coordinates of the log
         homing_sequence_y()
 
 #Stanley's functions
-def evaluate_image(image_loc, dim, model):
+def evaluate_image(image_array, dim, model):
     tamu = tf.keras.models.load_model(model)
-    ims = image.load_img(image_loc, target_size=(dim,dim))
-    ims = (np.expand_dims(ims, 0))
+    image_array = cv2.resize(image_array, (dim, dim))
+    ims = (np.expand_dims(image_array, 0))
     pred = tamu.predict(ims)
 
     if (pred[0][1] < 0.9):
@@ -481,16 +486,18 @@ def evaluate_image(image_loc, dim, model):
 
     return False
 
-def crop_nine_ways(image_loc, dim, model):
-    tamu = tf.keras.models.load_model(model)   
-    width, height = im.size
+def crop_nine_ways(image_array, original_dim, model):
+    tamu = tf.keras.models.load_model(model)
+    image_array = cv2.resize(image_array, (original_dim, original_dim))
+    height = image_array.shape[0]
+    width = image_array.shape[1]
     
     #1-1
     left = 0
     top = 0
     right = width / 3
     bottom = height / 3
-    im1 = im.crop((left, top, right, bottom))
+    im1 = image_array[top:bottom, left:right]
     #plt.imshow(im1)
     #plt.show()
     im1 = (np.expand_dims(im1, 0))
@@ -503,7 +510,7 @@ def crop_nine_ways(image_loc, dim, model):
     top = 0
     right = 2 * width / 3
     bottom = height / 3
-    im2 = im.crop((left, top, right, bottom))
+    im2 = image_array[top:bottom, left:right]
     #plt.imshow(im2)
     #plt.show()
     im2 = (np.expand_dims(im2, 0))
@@ -516,7 +523,7 @@ def crop_nine_ways(image_loc, dim, model):
     top = 0
     right = width
     bottom = height / 3
-    im3 = im.crop((left, top, right, bottom))
+    im3 = image_array[top:bottom, left:right]
     #plt.imshow(im3)
     #plt.show()
     im3 = (np.expand_dims(im3, 0))
@@ -529,7 +536,7 @@ def crop_nine_ways(image_loc, dim, model):
     top = height / 3
     right = width / 3
     bottom = 2 * height / 3
-    im4 = im.crop((left, top, right, bottom))
+    im4 = image_array[top:bottom, left:right]
     #plt.imshow(im4)
     #plt.show()
     im4 = (np.expand_dims(im4, 0))
@@ -542,7 +549,7 @@ def crop_nine_ways(image_loc, dim, model):
     top = height / 3
     right = 2 * width / 3
     bottom = 2 * height / 3
-    im5 = im.crop((left, top, right, bottom))
+    im5 = image_array[top:bottom, left:right]
     #plt.imshow(im5)
     #plt.show()
     im5 = (np.expand_dims(im5, 0))
@@ -555,7 +562,7 @@ def crop_nine_ways(image_loc, dim, model):
     top = height / 3
     right = width
     bottom = 2 * height / 3
-    im6 = im.crop((left, top, right, bottom))
+    im6 = image_array[top:bottom, left:right]
     #plt.imshow(im6)
     #plt.show()
     im6 = (np.expand_dims(im6, 0))
@@ -568,7 +575,7 @@ def crop_nine_ways(image_loc, dim, model):
     top = 2 * height / 3
     right = width / 3
     bottom = height
-    im7 = im.crop((left, top, right, bottom))
+    im7 = image_array[top:bottom, left:right]
     #plt.imshow(im7)
     #plt.show()
     im7 = (np.expand_dims(im7, 0))
@@ -581,7 +588,7 @@ def crop_nine_ways(image_loc, dim, model):
     top = 2 * height / 3
     right = 2 * width / 3
     bottom = height
-    im8 = im.crop((left, top, right, bottom))
+    im8 = image_array[top:bottom, left:right]
     #plt.imshow(im8)
     #plt.show()
     im8 = (np.expand_dims(im8, 0))
@@ -594,7 +601,7 @@ def crop_nine_ways(image_loc, dim, model):
     top = 2 * height / 3
     right = width
     bottom = height
-    im9 = im.crop((left, top, right, bottom))
+    im9 = image_array[top:bottom, left:right]
     #plt.imshow(im9)
     #plt.show()
     im9 = (np.expand_dims(im9, 0))
@@ -624,14 +631,110 @@ def crop_nine_ways(image_loc, dim, model):
     elif(pred9[0][1] == maximum):
         return [3, 3]
 
-def shift_due_to_cropped_image(mat, elevation):
+def shift_drone_position(image_array, original_dim, model, elevation):
+    mat = crop_nine_ways(image_array, original_dim, model)
+    
+    # The RGB FOV is 69 deg x 42 deg (H X V)
+    # 34.5 (69/2) is 34.5/180*pi
+    # 21 (42/2) is 21/180*pi
+    horizontal_shift = elevation * np.tan(34.5/180*np.pi)
+    vertical_shift = elevation * np.tan(21/180*np.pi)
+
+    rounded_horizontal = round(horizontal_shift)
+    rounded_vertical = round(vertical_shift)
+    
     if (mat[0] == 1):
         #go left some predetermined distance
+        p1.left_velocity(rounded_horizontal, 1)
     else if (mat[0] == 3):
         #go right some predetermined distance
+        p1.right_velocity(rounded_horizontal, 1)
 
     if (mat[1] == 1):
         #go up some predetermined distance
+        p1.forward_velocity(rounded_vertical, 1)
     else if (mat[1] == 3):
         #go down some predetermined distance
+        p1.backwards_velocity(rounded_vertical, 1)
+
+    p1.downwards_velocity(5m)
+
+def starting_left_pattern(): #function for starting on right side and going left
+    result = evaluate_image(pic, 200, tamu_model_v5)
+    if (result == False):
+        print("Starting search pattern")
+        result2 = False
+        while (result2 == False):
+            p1.left_velocity(5m)
+            result2 = evaluate_image(pic, 200, tamu_model_v5)
+            if (drone_location == left_boundary_point):
+                break
+
+    if (result2 == True): #logo was detected
+        print("Logo area detected")
+        while(drone_elevation > 1m):
+            #take new picture
+            shift_drone_position(pic, 600, tamu_model_v5, drone_elevation)
+        VehicleMode("Land")
+        return True
+    elif(drone_location == left_boundary_point):
+        p1.forward_velocity(2m)
+        print("Reached left starting point")
+        return False
+
+def starting_right_pattern(): #function for starting on left side and going right
+    result = evaluate_image(pic, 200, tamu_model_v5)
+    if (result == False):
+    print("Starting search pattern")
+    result2 = False
+    while (result2 == False):
+        p1.right_velocity(5m)
+        result2 = evaluate_image(pic, 200, tamu_model_v5)
+        if (drone_location == right_boundary_point):
+            break
+
+    if (result2 == True): #logo was detected
+        print("Logo area detected")
+        while(drone_elevation > 1m):
+            #take new picture
+            shift_drone_position(pic, 600, tamu_model_v5, drone_elevation)
+        VehicleMode("Land")
+        return True
+    elif(drone_location == right_boundary_point):
+        p1.forward_velocity(2m)
+        print("Reached right starting point")
+        return False
+
+#psuedo code
+
+## SETTING UP REALSENSE CAMERA ##
+# Configure depth and color streams
+pipeline = rs.pipeline()
+config = rs.config()
+
+config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
+profile = pipeline.start(config)
+
+frames = pipeline.wait_for_frames()
+color_frame = frames.get_color_frame()
+
+p1 = Movement()
+
+
+#drone starts from initial position
+p1.arm_and_takeoff(6) #assume that it starts on right side of the field
+var = False
+var2 = False
+while ((var == False) && (var2 == False)):
+    var = starting_left_pattern()
+    var2 = starting_right_pattern()
+
+        
+        
+#while drone is on search pattern
+#   call evaluate_image function
+#   if it returns true break out of while loop
+
+#while drone elevation is above 0ft
+#   call shift_drone_position function
 
