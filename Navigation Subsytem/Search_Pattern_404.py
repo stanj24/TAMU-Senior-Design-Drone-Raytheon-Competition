@@ -122,17 +122,113 @@ def condition_yaw(heading, relative=False): #This function is to set the drone a
     vehicle.send_mavlink(msg)
 
 #Rough draft function for going left
-def Search_Pattern_Left():
-    x=0
-    for x in range(0,24):
+def Search_Pattern_Left(Starting_travel_coordinates):
+    #this is an initial check before we start to go left
+    #take picture
+    pic = taken_picture
+    pos_arr, val = crop_and_analyze(pic)
+    if (val > 15): #if pixel count is greater than 15, start homing
+        while(int(vehicle.location.global_relative_frame.alt) > 1): #until it's less than 1m from the ground
+            #take new picture
+            shift_drone_position(pic, vehicle.location.global_relative_frame.alt, pos_arr)
+        print("Time to land")
+        vehicle.mode = VehicleMode("LAND")
+        vehicle.close()
+
+    x = 0
+    while(x < 8):
         Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
         Current_location_y_new = vehicle.location.global_relative_frame.lon
-        Longitude_new = translate_latlong(Current_location_x_new, Current_location_y_new, 0, -2)
+        Travel_coordinates = (Current_location_x_new, 0)
+        Longitude_new = translate_latlong(Current_location_x_new, Current_location_y_new, 0, -5)
         print("Flying left")
         Travel_point = LocationGlobalRelative(Current_location_x_new, Longitude_new, 0)
         vehicle.simple_goto(Travel_point)
-        time.sleep(2)
-        x+=1
+        time.sleep(10)
+        distance_traveled = (geopy.distance.geodesic(Starting_travel_coordinates, Travel_coordinates).m) #Print out the distance in meters between two points
+        if (int(distance_traveled) > 95):
+            print("Went too far, time to land")
+            vehicle.mode = VehicleMode("LAND")
+            vehicle.close()
+
+        #take picture
+        pic = taken_picture
+        pos_arr, val = crop_and_analyze(pic)
+        if (val > 15): #if pixel count is greater than 15, start homing
+            while(int(vehicle.location.global_relative_frame.alt) > 1): #until it's less than 1m from the ground
+                #take new picture
+                shift_drone_position(pic, vehicle.location.global_relative_frame.alt, pos_arr)
+            print("Time to land")
+            vehicle.mode = VehicleMode("LAND")
+            vehicle.close()
+            break
+        x = x+1
+    
+    if (x == 8): #reached end of field, time to go straight
+        Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
+        Current_location_y_new = vehicle.location.global_relative_frame.lon
+        Longitude_new = translate_up_down(Current_location_x_new, Current_location_y_new, 2, 0)
+        print("Flying forward")
+        Travel_point = LocationGlobalRelative(Longitude_new, Current_location_y_new, 0)
+        vehicle.simple_goto(Travel_point)
+
+        Search_Pattern_Right() #time to start going right
+    else:
+        print("Error")
+
+def Search_Pattern_Right(Starting_travel_coordinates):
+    #this is an initial check before we start to go right
+    #take picture
+    pic = taken_picture
+    pos_arr, val = crop_and_analyze(pic)
+    if (val > 15): #if pixel count is greater than 15, start homing
+        while(int(vehicle.location.global_relative_frame.alt) > 1): #until it's less than 1m from the ground
+            #take new picture
+            shift_drone_position(pic, vehicle.location.global_relative_frame.alt, pos_arr)
+        print("Time to land")
+        vehicle.mode = VehicleMode("LAND")
+        vehicle.close()
+
+    x = 0
+    while(x < 8):
+        Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
+        Current_location_y_new = vehicle.location.global_relative_frame.lon
+        Travel_coordinates = (Current_location_x_new, 0)
+        Longitude_new = translate_latlong(Current_location_x_new, Current_location_y_new, 0, 5)
+        print("Flying right")
+        Travel_point = LocationGlobalRelative(Current_location_x_new, Longitude_new, 0)
+        vehicle.simple_goto(Travel_point)
+        time.sleep(10)
+        distance_traveled = (geopy.distance.geodesic(Starting_travel_coordinates, Travel_coordinates).m) #Print out the distance in meters between two points
+        if (int(distance_traveled) > 95):
+            print("Went too far, time to land")
+            vehicle.mode = VehicleMode("LAND")
+            vehicle.close()
+
+        #take picture
+        pic = taken_picture
+        pos_arr, val = crop_and_analyze(pic)
+        if (val > 15): #if pixel count is greater than 15, start homing
+            while(int(vehicle.location.global_relative_frame.alt) > 1): #until it's less than 1m from the ground
+                #take new picture
+                shift_drone_position(pic, vehicle.location.global_relative_frame.alt, pos_arr)
+            print("Time to land")
+            vehicle.mode = VehicleMode("LAND")
+            vehicle.close()
+            break
+        x = x+1
+    
+    if (x == 8): #reached end of field, time to go straight
+        Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
+        Current_location_y_new = vehicle.location.global_relative_frame.lon
+        Longitude_new = translate_up_down(Current_location_x_new, Current_location_y_new, 2, 0)
+        print("Flying forward")
+        Travel_point = LocationGlobalRelative(Longitude_new, Current_location_y_new, 0)
+        vehicle.simple_goto(Travel_point)
+
+        Search_Pattern_Left() #time to start going left
+    else:
+        print("Error")
 
 #Stanley's Image Recognition Functions
 def evaluate_image(img1, img2):
@@ -309,92 +405,61 @@ def shift_drone_position(image_array, elevation, position_array):
     
     if (position_array[0] == 1):
         #go left some predetermined distance
-        p1.left_velocity(rounded_horizontal, 1)
+        Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
+        Current_location_y_new = vehicle.location.global_relative_frame.lon
+        Longitude_new = translate_latlong(Current_location_x_new, Current_location_y_new, 0, -1*rounded_horizontal)
+        print("Flying left")
+        Travel_point = LocationGlobalRelative(Current_location_x_new, Longitude_new, 0)
+        vehicle.simple_goto(Travel_point)
     elif (position_array[0] == 3):
         #go right some predetermined distance
-        p1.right_velocity(rounded_horizontal, 1)
+        Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
+        Current_location_y_new = vehicle.location.global_relative_frame.lon
+        Longitude_new = translate_latlong(Current_location_x_new, Current_location_y_new, 0, rounded_horizontal)
+        print("Flying right")
+        Travel_point = LocationGlobalRelative(Current_location_x_new, Longitude_new, 0)
+        vehicle.simple_goto(Travel_point)
 
     if (position_array[1] == 1):
         #go up some predetermined distance
-        p1.forward_velocity(rounded_vertical, 1)
+        Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
+        Current_location_y_new = vehicle.location.global_relative_frame.lon
+        Longitude_new = translate_up_down(Current_location_x_new, Current_location_y_new, rounded_vertical, 0)
+        print("Flying forward")
+        Travel_point = LocationGlobalRelative(Longitude_new, Current_location_y_new, 0)
+        vehicle.simple_goto(Travel_point)
     elif (position_array[1] == 3):
         #go down some predetermined distance
-        p1.backwards_velocity(rounded_vertical, 1)
+        Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
+        Current_location_y_new = vehicle.location.global_relative_frame.lon
+        Longitude_new = translate_up_down(Current_location_x_new, Current_location_y_new, -1*rounded_vertical, 0)
+        print("Flying backward")
+        Travel_point = LocationGlobalRelative(Longitude_new, Current_location_y_new, 0)
+        vehicle.simple_goto(Travel_point)
 
-    p1.downwards_velocity(5m)
+    # this makes the drone go down 5m
+    Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
+    Current_location_y_new = vehicle.location.global_relative_frame.lon
+    new_altitude = vehicle.location.global_relative_frame.alt-5
+    Travel_point = LocationGlobalRelative(Current_location_x_new, Current_location_y_new, new_altitude)
+    vehicle.simple_goto(Travel_point)
 
 coords_1 = (52.2296756, 21.0122287)
 coords_2 = (52.406374, 16.9251681)
 
 print(geopy.distance.geodesic(coords_1, coords_2).m) #Print out the distance in meters between two points
 
+# main code
 arm_and_takeoff(10)
 condition_yaw(0)
-Current_location_x= vehicle.location.global_relative_frame.lat
-Current_location_y= vehicle.location.global_relative_frame.lon
-Search_Pattern_Left()
+Starting_location_x= vehicle.location.global_relative_frame.lat
+Starting_location_y= vehicle.location.global_relative_frame.lon
+Starting_travel_coordinates = (Starting_location_x, 0)
 
-'''
-Starting_coordinates = (Current_location_x,0)
-print("This is the initial lat and long coordinates",Current_location_x,Current_location_y)
-print("Set default/target airspeed to 3")
-vehicle.airspeed = 3
-#Search pattern loop, staring with going left
-Current_location_x_new= vehicle.location.global_relative_frame.lat #Getting the starting poitns
-Current_location_y_new= vehicle.location.global_relative_frame.lon
-Traveled_coordinates =(Current_location_x_new,0)
-Distance_traveled_straight= geopy.distance.geodesic(Starting_coordinates,Traveled_coordinates).m
-print("Distance Traveled in x-direction",Distance_traveled_straight)
-Longitude_new=translate_latlong(Current_location_x_new,Current_location_y_new,0,-50)
-print("Flying left")
-Travel_point= LocationGlobalRelative(Current_location_x_new,Longitude_new,0)
-vehicle.simple_goto(Travel_point)
-time.sleep(10)
-
-#Going straight
-Current_location_x_new= vehicle.location.global_relative_frame.lat #Getting the starting poitns
-Current_location_y_new= vehicle.location.global_relative_frame.lon
-Traveled_coordinates =(Current_location_x_new,0)
-Distance_traveled_straight= geopy.distance.geodesic(Starting_coordinates,Traveled_coordinates).m
-print("Distance Traveled in x-direction",Distance_traveled_straight)
-New_straight_point=translate_up_down(Current_location_x_new,Current_location_y_new,2,0)
-print("Flying Straight")
-Travel_point_2= LocationGlobalRelative(New_straight_point,Current_location_y_new,0)
-vehicle.simple_goto(Travel_point_2)
-time.sleep(10)
-
-#Going right
-Current_location_x_new= vehicle.location.global_relative_frame.lat #Getting the starting poitns
-Current_location_y_new= vehicle.location.global_relative_frame.lon
-Traveled_coordinates =(Current_location_x_new,0)
-Distance_traveled_straight= geopy.distance.geodesic(Starting_coordinates,Traveled_coordinates).m
-print("Distance Traveled in x-direction",Distance_traveled_straight)
-Longitude_new=translate_latlong(Current_location_x_new,Current_location_y_new,0,50)
-print("Flying right")
-Travel_point= LocationGlobalRelative(Current_location_x_new,Longitude_new,0)
-vehicle.simple_goto(Travel_point)
-time.sleep(10)
+#starting on the right side
 
 
 
 
-
-Long_new=translate_latlong(Current_location_x,Current_location_y,0,-30)
-print("New Longitude Coordinates are:",Long_new)
-print("Going towards first point for 30 seconds ...")
-point1 = LocationGlobalRelative(Current_location_x,Long_new,0)
-vehicle.simple_goto(point1)
-
-# sleep so we can see the change in map
-
-# sleep so we can see the change in map
-time.sleep(10)
-'''
-print("Returning to Launch")
-vehicle.mode = VehicleMode("RTL")
-
-# Close vehicle object before exiting script
-print("Close vehicle object")
-vehicle.close()
 
 
