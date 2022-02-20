@@ -13,6 +13,13 @@ from dronekit import connect, VehicleMode, LocationGlobalRelative, LocationGloba
 from pymavlink import mavutil
 import geopy
 from geopy.distance import geodesic
+
+import pyrealsense2 as rs
+import numpy as np
+import cv2
+import os
+import matplotlib.pyplot as plt
+
 import math
 import time
 import argparse
@@ -126,6 +133,195 @@ def Search_Pattern_Left():
         vehicle.simple_goto(Travel_point)
         time.sleep(2)
         x+=1
+
+#Stanley's Image Recognition Functions
+def evaluate_image(img1, img2):
+    # Initiate SIFT detector
+    sift = cv2.SIFT_create()
+
+    # find the keypoints and descriptors with SIFT
+    kp1, des1 = sift.detectAndCompute(img1,None)
+    kp2, des2 = sift.detectAndCompute(img2,None)
+
+    # BFMatcher with default params
+    bf = cv2.BFMatcher()
+    try:
+        matches = bf.knnMatch(des1,des2,k=2)
+    except:
+        return 0
+
+    # Apply ratio test
+    mat = 0
+    good = []
+    for m,n in matches:
+        if m.distance < 0.75*n.distance:
+            good.append([m])
+            mat = mat + 1
+    # cv.drawMatchesKnn expects list of lists as matches.
+    # img3 = cv.drawMatchesKnn(img1,kp1,img2,kp2,good,None,flags=cv.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+    
+    return mat #returns number of matching pixels
+
+def crop_and_analyze(image_array):
+
+    height = image_array.shape[0]
+    width = image_array.shape[1]
+    
+    #1-1
+    left = 0
+    top = 0
+    right = int(width / 3)
+    bottom = int(height / 3)
+    im1 = image_array[top:bottom, left:right]
+    pred1 = evaluate_image(img_og, im1)
+    plt.imshow(im1)
+    plt.show()
+    print("Section 1-1")
+    print(pred1)
+    
+    #1-2
+    left = int(width / 3)
+    top = 0
+    right = int(2 * width / 3)
+    bottom = int(height / 3)
+    im2 = image_array[top:bottom, left:right]
+    pred2 = evaluate_image(img_og, im2)
+    plt.imshow(im2)
+    plt.show()
+    print("Section 1-2")
+    print(pred2)
+    
+    #1-3
+    left = int(2 * width / 3)
+    top = 0
+    right = width
+    bottom = int(height / 3)
+    im3 = image_array[top:bottom, left:right]
+    pred3 = evaluate_image(img_og, im3)
+    plt.imshow(im3)
+    plt.show()
+    print("Section 1-3")
+    print(pred3)
+    
+    #2-1
+    left = 0
+    top = int(height / 3)
+    right = int(width / 3)
+    bottom = int(2 * height / 3)
+    im4 = image_array[top:bottom, left:right]
+    pred4 = evaluate_image(img_og, im4)
+    plt.imshow(im4)
+    plt.show()
+    print("Section 2-1")
+    print(pred4)
+    
+    #2-2
+    left = int(width / 3)
+    top = int(height / 3)
+    right = int(2 * width / 3)
+    bottom = int(2 * height / 3)
+    im5 = image_array[top:bottom, left:right]
+    pred5 = evaluate_image(img_og, im5)
+    plt.imshow(im5)
+    plt.show()
+    print("Section 2-2")
+    print(pred5)
+    
+    #2-3
+    left = int(2 * width / 3)
+    top = int(height / 3)
+    right = width
+    bottom = int(2 * height / 3)
+    im6 = image_array[top:bottom, left:right]
+    pred6 = evaluate_image(img_og, im6)
+    plt.imshow(im6)
+    plt.show()
+    print("Section 2-3")
+    print(pred6)
+    
+    #3-1
+    left = 0
+    top = int(2 * height / 3)
+    right = int(width / 3)
+    bottom = height
+    im7 = image_array[top:bottom, left:right]
+    pred7 = evaluate_image(img_og, im7)
+    plt.imshow(im7)
+    plt.show()
+    print("Section 3-1")
+    print(pred7)
+    
+    #3-2
+    left = int(width / 3)
+    top = int(2 * height / 3)
+    right = int(2 * width / 3)
+    bottom = height
+    im8 = image_array[top:bottom, left:right]
+    pred8 = evaluate_image(img_og, im8)
+    plt.imshow(im8)
+    plt.show()
+    print("Section 3-2")
+    print(pred8)
+    
+    #3-3
+    left = int(2 * width / 3)
+    top = int(2 * height / 3)
+    right = width
+    bottom = height
+    im9 = image_array[top:bottom, left:right]
+    pred9 = evaluate_image(img_og, im9)
+    plt.imshow(im9)
+    plt.show()
+    print("Section 3-3")
+    print(pred9)
+    
+    #calculate region with the highest probablity of having the logo
+    maximum = max(pred1, pred2, pred3, pred4, pred5, pred6, pred7, pred8, pred9)
+    
+    if(pred1 == maximum):
+        return [1, 1], pred1
+    elif(pred2 == maximum):
+        return [1, 2], pred2
+    elif(pred3 == maximum):
+        return [1, 3], pred3
+    elif(pred4 == maximum):
+        return [2, 1], pred4
+    elif(pred5 == maximum):
+        return [2, 2], pred5
+    elif(pred6 == maximum):
+        return [2, 3], pred6
+    elif(pred7 == maximum):
+        return [3, 1], pred7
+    elif(pred8 == maximum):
+        return [3, 2], pred8
+    elif(pred9 == maximum):
+        return [3, 3], pred9
+
+def shift_drone_position(image_array, elevation, position_array):   
+    # The RGB FOV is 69 deg x 42 deg (H X V)
+    # 34.5 (69/2) is 34.5/180*pi
+    # 21 (42/2) is 21/180*pi
+    horizontal_shift = elevation * np.tan(34.5/180*np.pi)
+    vertical_shift = elevation * np.tan(21/180*np.pi)
+
+    rounded_horizontal = round(horizontal_shift)
+    rounded_vertical = round(vertical_shift)
+    
+    if (position_array[0] == 1):
+        #go left some predetermined distance
+        p1.left_velocity(rounded_horizontal, 1)
+    elif (position_array[0] == 3):
+        #go right some predetermined distance
+        p1.right_velocity(rounded_horizontal, 1)
+
+    if (position_array[1] == 1):
+        #go up some predetermined distance
+        p1.forward_velocity(rounded_vertical, 1)
+    elif (position_array[1] == 3):
+        #go down some predetermined distance
+        p1.backwards_velocity(rounded_vertical, 1)
+
+    p1.downwards_velocity(5m)
 
 coords_1 = (52.2296756, 21.0122287)
 coords_2 = (52.406374, 16.9251681)
