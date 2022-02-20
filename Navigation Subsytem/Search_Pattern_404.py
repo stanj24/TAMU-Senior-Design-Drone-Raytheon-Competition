@@ -96,7 +96,36 @@ def translate_up_down(lat, long, lat_translation_meters, long_translation_meters
     altitude = 0
 
     return lat_new #Changed
+def condition_yaw(heading, relative=False): #This function is to set the drone as straight
+    if relative:
+        is_relative=1 #yaw relative to direction of travel
+    else:
+        is_relative=0 #yaw is an absolute angle
+    # create the CONDITION_YAW command using command_long_encode()
+    msg = vehicle.message_factory.command_long_encode(
+        0, 0,    # target system, target component
+        mavutil.mavlink.MAV_CMD_CONDITION_YAW, #command
+        0, #confirmation
+        heading,    # param 1, yaw in degrees
+        0,          # param 2, yaw speed deg/s
+        1,          # param 3, direction -1 ccw, 1 cw
+        is_relative, # param 4, relative offset 1, absolute angle 0
+        0, 0, 0)    # param 5 ~ 7 not used
+    # send command to vehicle
+    vehicle.send_mavlink(msg)
 
+#Rough draft function for going left
+def Search_Pattern_Left():
+    x=0
+    for x in range(0,24):
+        Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
+        Current_location_y_new = vehicle.location.global_relative_frame.lon
+        Longitude_new = translate_latlong(Current_location_x_new, Current_location_y_new, 0, -2)
+        print("Flying left")
+        Travel_point = LocationGlobalRelative(Current_location_x_new, Longitude_new, 0)
+        vehicle.simple_goto(Travel_point)
+        time.sleep(2)
+        x+=1
 
 coords_1 = (52.2296756, 21.0122287)
 coords_2 = (52.406374, 16.9251681)
@@ -104,10 +133,12 @@ coords_2 = (52.406374, 16.9251681)
 print(geopy.distance.geodesic(coords_1, coords_2).m) #Print out the distance in meters between two points
 
 arm_and_takeoff(10)
-
+condition_yaw(0)
 Current_location_x= vehicle.location.global_relative_frame.lat
 Current_location_y= vehicle.location.global_relative_frame.lon
+Search_Pattern_Left()
 
+'''
 Starting_coordinates = (Current_location_x,0)
 print("This is the initial lat and long coordinates",Current_location_x,Current_location_y)
 print("Set default/target airspeed to 3")
@@ -162,7 +193,7 @@ vehicle.simple_goto(point1)
 
 # sleep so we can see the change in map
 time.sleep(10)
-
+'''
 print("Returning to Launch")
 vehicle.mode = VehicleMode("RTL")
 
