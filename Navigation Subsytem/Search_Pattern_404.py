@@ -121,11 +121,22 @@ def condition_yaw(heading, relative=False): #This function is to set the drone a
     # send command to vehicle
     vehicle.send_mavlink(msg)
 
+#Stanley's taking an image function
+def take_image(): #pipeline must be started before calling
+    time.sleep(3)
+    #get color frame
+    frames = pipeline.wait_for_frames()
+    color_frame = frames.get_color_frame()
+
+    # Convert images to numpy arrays
+    color_image = np.asanyarray(color_frame.get_data())
+    return color_image
+
 #Rough draft function for going left
 def Search_Pattern_Left(Starting_travel_coordinates):
     #this is an initial check before we start to go left
     #take picture
-    pic = taken_picture
+    pic = take_image()
     pos_arr, val = crop_and_analyze(pic)
     if (val > 15): #if pixel count is greater than 15, start homing
         while(int(vehicle.location.global_relative_frame.alt) > 1): #until it's less than 1m from the ground
@@ -174,12 +185,12 @@ def Search_Pattern_Left(Starting_travel_coordinates):
 
         Search_Pattern_Right() #time to start going right
     else:
-        print("Error")
+        print("Error or we landed")
 
 def Search_Pattern_Right(Starting_travel_coordinates):
     #this is an initial check before we start to go right
     #take picture
-    pic = taken_picture
+    pic = take_image()
     pos_arr, val = crop_and_analyze(pic)
     if (val > 15): #if pixel count is greater than 15, start homing
         while(int(vehicle.location.global_relative_frame.alt) > 1): #until it's less than 1m from the ground
@@ -206,7 +217,7 @@ def Search_Pattern_Right(Starting_travel_coordinates):
             vehicle.close()
 
         #take picture
-        pic = taken_picture
+        pic = take_image()
         pos_arr, val = crop_and_analyze(pic)
         if (val > 15): #if pixel count is greater than 15, start homing
             while(int(vehicle.location.global_relative_frame.alt) > 1): #until it's less than 1m from the ground
@@ -228,9 +239,10 @@ def Search_Pattern_Right(Starting_travel_coordinates):
 
         Search_Pattern_Left() #time to start going left
     else:
-        print("Error")
+        print("Error or we landed")
 
 #Stanley's Image Recognition Functions
+
 def evaluate_image(img1, img2):
     # Initiate SIFT detector
     sift = cv2.SIFT_create()
@@ -258,10 +270,43 @@ def evaluate_image(img1, img2):
     
     return mat #returns number of matching pixels
 
+def forward_GPS_point(rounded_vertical):
+    Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
+    Current_location_y_new = vehicle.location.global_relative_frame.lon
+    Longitude_new = translate_up_down(Current_location_x_new, Current_location_y_new, rounded_vertical, 0)
+    print("Flying forwards")
+    Travel_point = LocationGlobalRelative(Longitude_new, Current_location_y_new, 0)
+    vehicle.simple_goto(Travel_point)
+
+def backwards_GPS_point(rounded_vertical):
+    Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
+    Current_location_y_new = vehicle.location.global_relative_frame.lon
+    Longitude_new = translate_up_down(Current_location_x_new, Current_location_y_new, -1*rounded_vertical, 0)
+    print("Flying backwards")
+    Travel_point = LocationGlobalRelative(Longitude_new, Current_location_y_new, 0)
+    vehicle.simple_goto(Travel_point)
+
+def left_GPS_point(rounded_horizontal):
+    Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
+    Current_location_y_new = vehicle.location.global_relative_frame.lon
+    Longitude_new = translate_latlong(Current_location_x_new, Current_location_y_new, 0, -1*rounded_horizontal)
+    print("Flying left")
+    Travel_point = LocationGlobalRelative(Current_location_x_new, Longitude_new, 0)
+    vehicle.simple_goto(Travel_point)
+
+def right_GPS_point(rounded_horizontal):
+    Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
+    Current_location_y_new = vehicle.location.global_relative_frame.lon
+    Longitude_new = translate_latlong(Current_location_x_new, Current_location_y_new, 0, rounded_horizontal)
+    print("Flying right")
+    Travel_point = LocationGlobalRelative(Current_location_x_new, Longitude_new, 0)
+    vehicle.simple_goto(Travel_point)
+
 def crop_and_analyze(image_array):
 
     height = image_array.shape[0]
     width = image_array.shape[1]
+    img_og = cv2.imread("TAM-LogoBox.jpg")
     
     #1-1
     left = 0
@@ -405,37 +450,17 @@ def shift_drone_position(image_array, elevation, position_array):
     
     if (position_array[0] == 1):
         #go left some predetermined distance
-        Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
-        Current_location_y_new = vehicle.location.global_relative_frame.lon
-        Longitude_new = translate_latlong(Current_location_x_new, Current_location_y_new, 0, -1*rounded_horizontal)
-        print("Flying left")
-        Travel_point = LocationGlobalRelative(Current_location_x_new, Longitude_new, 0)
-        vehicle.simple_goto(Travel_point)
+        left_GPS_point(rounded_horizontal)
     elif (position_array[0] == 3):
         #go right some predetermined distance
-        Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
-        Current_location_y_new = vehicle.location.global_relative_frame.lon
-        Longitude_new = translate_latlong(Current_location_x_new, Current_location_y_new, 0, rounded_horizontal)
-        print("Flying right")
-        Travel_point = LocationGlobalRelative(Current_location_x_new, Longitude_new, 0)
-        vehicle.simple_goto(Travel_point)
+        right_GPS_point(rounded_horizontal)
 
     if (position_array[1] == 1):
         #go up some predetermined distance
-        Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
-        Current_location_y_new = vehicle.location.global_relative_frame.lon
-        Longitude_new = translate_up_down(Current_location_x_new, Current_location_y_new, rounded_vertical, 0)
-        print("Flying forward")
-        Travel_point = LocationGlobalRelative(Longitude_new, Current_location_y_new, 0)
-        vehicle.simple_goto(Travel_point)
+        forward_GPS_point(rounded_vertical)
     elif (position_array[1] == 3):
         #go down some predetermined distance
-        Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
-        Current_location_y_new = vehicle.location.global_relative_frame.lon
-        Longitude_new = translate_up_down(Current_location_x_new, Current_location_y_new, -1*rounded_vertical, 0)
-        print("Flying backward")
-        Travel_point = LocationGlobalRelative(Longitude_new, Current_location_y_new, 0)
-        vehicle.simple_goto(Travel_point)
+        backwards_GPS_point(rounded_vertical)
 
     # this makes the drone go down 5m
     Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
@@ -456,10 +481,20 @@ Starting_location_x= vehicle.location.global_relative_frame.lat
 Starting_location_y= vehicle.location.global_relative_frame.lon
 Starting_travel_coordinates = (Starting_location_x, 0)
 
+pipeline = rs.pipeline()
+config = rs.config()
+config.enable_stream(rs.stream.color, 1920, 1080, rs.format.bgr8, 8)
+# Start streaming
+pipeline.start(config)
+
+a = input("Please enter distance from the right side of the field (in meters): ")
+right_GPS_point(a)
+
 #starting on the right side
+Search_Pattern_Left(Starting_travel_coordinates)
 
 
-
+pipeline.stop()
 
 
 
