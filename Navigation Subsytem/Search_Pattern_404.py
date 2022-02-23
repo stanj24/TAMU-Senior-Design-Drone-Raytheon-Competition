@@ -163,7 +163,7 @@ def Search_Pattern_Left(Starting_travel_coordinates):
             vehicle.close()
 
         #take picture
-        pic = taken_picture
+        pic = take_image()
         pos_arr, val = crop_and_analyze(pic)
         if (val > 15): #if pixel count is greater than 15, start homing
             while(int(vehicle.location.global_relative_frame.alt) > 1): #until it's less than 1m from the ground
