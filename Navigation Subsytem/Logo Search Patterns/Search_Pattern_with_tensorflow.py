@@ -453,51 +453,54 @@ def crop_and_analyze_SIFT(image_array): #analysis using SIFT
     elif(pred9 == maximum):
         return [3, 3], pred9
 
-def crop_and_analyze_tensorflow(image_array, model): #analysis using tensorflow, only for cross referencing SIFT
+def crop_and_analyze_tensorflow(image_array, pos_array, model): #analysis using tensorflow, only for cross referencing SIFT
     tamu = tf.keras.models.load_model(model)
 
     image_array = cv2.resize(image_array, (600, 600))
     height = image_array.shape[0]
     width = image_array.shape[1]
     
-    #1-1
-    left = 0
-    top = 0
-    right = int(width / 3)
-    bottom = int(height / 3)
-    im1 = image_array[top:bottom, left:right]
-    plt.imshow(im1)
-    plt.show()
-    im1 = (np.expand_dims(im1, 0))
-    pred1 = tamu.predict(im1)
-    #print("Section 1-1")
-    #print(pred1)
+    if (pos_array == [1, 1]):
+        #1-1
+        left = 0
+        top = 0
+        right = int(width / 3)
+        bottom = int(height / 3)
+        im1 = image_array[top:bottom, left:right]
+        plt.imshow(im1)
+        plt.show()
+        im1 = (np.expand_dims(im1, 0))
+        pred1 = tamu.predict(im1)
+        #print("Section 1-1")
+        #print(pred1)
     
-    #1-2
-    left = int(width / 3)
-    top = 0
-    right = int(2 * width / 3)
-    bottom = int(height / 3)
-    im2 = image_array[top:bottom, left:right]
-    plt.imshow(im2)
-    plt.show()
-    im2 = (np.expand_dims(im2, 0))
-    pred2 = tamu.predict(im2)
-    #print("Section 1-2")
-    #print(pred2)
+    elif (pos_array == [1,2]):
+        #1-2
+        left = int(width / 3)
+        top = 0
+        right = int(2 * width / 3)
+        bottom = int(height / 3)
+        im2 = image_array[top:bottom, left:right]
+        plt.imshow(im2)
+        plt.show()
+        im2 = (np.expand_dims(im2, 0))
+        pred2 = tamu.predict(im2)
+        #print("Section 1-2")
+        #print(pred2)
     
-    #1-3
-    left = int(2 * width / 3)
-    top = 0
-    right = width
-    bottom = int(height / 3)
-    im3 = image_array[top:bottom, left:right]
-    plt.imshow(im3)
-    plt.show()
-    im3 = (np.expand_dims(im3, 0))
-    pred3 = tamu.predict(im3)
-    #print("Section 1-3")
-    #print(pred3)
+    elif (pos_array == [1,3]):
+        #1-3
+        left = int(2 * width / 3)
+        top = 0
+        right = width
+        bottom = int(height / 3)
+        im3 = image_array[top:bottom, left:right]
+        plt.imshow(im3)
+        plt.show()
+        im3 = (np.expand_dims(im3, 0))
+        pred3 = tamu.predict(im3)
+        #print("Section 1-3")
+        #print(pred3)
     
     #2-1
     left = 0
