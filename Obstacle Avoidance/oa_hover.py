@@ -464,11 +464,10 @@ realsense_connect()
 time.sleep(3) # give the camera frames a chance to warmup
 
 counter = 0
+condition_yaw(0) # position drone straight
+arm_and_takeoff(1) # takeoff to altitude of 5 feet = 1.5 meters
 
 while counter < 10:
-    condition_yaw(0) # position drone straight
-    arm_and_takeoff(1) # takeoff to altitude of 5 feet = 1.5 meters
-
     depth_frame, color_frame, filtered_frame, depth_mat = take_image()
     if not depth_frame:
         continue
