@@ -284,37 +284,45 @@ def evaluate_image(img1, img2):
     
     return mat #returns number of matching pixels
 
-def forward_GPS_point(rounded_vertical):
+def forward_GPS_point(rounded_vertical): #New Going Forward Function - Jeremiah 
     Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
     Current_location_y_new = vehicle.location.global_relative_frame.lon
-    Longitude_new = translate_up_down(Current_location_x_new, Current_location_y_new, rounded_vertical, 0)
-    print("Flying forwards")
-    Travel_point = LocationGlobalRelative(Longitude_new, Current_location_y_new, 0)
-    vehicle.simple_goto(Travel_point)
+    New_straight_point = translate_up_down(Current_location_x_new, Current_location_y_new, rounded_vertical, 0)
+    print("Flying Straight")
+    Altitude = vehicle.location.global_relative_frame.alt
+    Travel_point_2 = LocationGlobalRelative(New_straight_point, Current_location_y_new, Altitude)
+    vehicle.simple_goto(Travel_point_2)
+    time.sleep(20)
 
-def backwards_GPS_point(rounded_vertical):
+def backwards_GPS_point(rounded_vertical): #New Going Function - Jeremiah 
     Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
     Current_location_y_new = vehicle.location.global_relative_frame.lon
-    Longitude_new = translate_up_down(Current_location_x_new, Current_location_y_new, -1*rounded_vertical, 0)
-    print("Flying backwards")
-    Travel_point = LocationGlobalRelative(Longitude_new, Current_location_y_new, 0)
-    vehicle.simple_goto(Travel_point)
+    New_straight_point = translate_up_down(Current_location_x_new, Current_location_y_new, -1*rounded_vertical, 0)
+    print("Flying Backwards")
+    Altitude = vehicle.location.global_relative_frame.alt
+    Travel_point_2 = LocationGlobalRelative(New_straight_point, Current_location_y_new, Altitude)
+    vehicle.simple_goto(Travel_point_2)
+    time.sleep(20)
 
-def left_GPS_point(rounded_horizontal):
+def left_GPS_point(rounded_horizontal): #New Going Function - Jeremiah 
     Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
     Current_location_y_new = vehicle.location.global_relative_frame.lon
     Longitude_new = translate_latlong(Current_location_x_new, Current_location_y_new, 0, -1*rounded_horizontal)
     print("Flying left")
-    Travel_point = LocationGlobalRelative(Current_location_x_new, Longitude_new, 0)
+    Altitude = vehicle.location.global_relative_frame.alt
+    Travel_point = LocationGlobalRelative(Current_location_x_new, Longitude_new, Altitude)
     vehicle.simple_goto(Travel_point)
+    time.sleep(20)
 
-def right_GPS_point(rounded_horizontal):
+def right_GPS_point(rounded_horizontal): #New Going Function - Jeremiah 
     Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
     Current_location_y_new = vehicle.location.global_relative_frame.lon
     Longitude_new = translate_latlong(Current_location_x_new, Current_location_y_new, 0, rounded_horizontal)
     print("Flying right")
-    Travel_point = LocationGlobalRelative(Current_location_x_new, Longitude_new, 0)
+    Altitude = vehicle.location.global_relative_frame.alt
+    Travel_point = LocationGlobalRelative(Current_location_x_new, Longitude_new, Altitude)
     vehicle.simple_goto(Travel_point)
+    time.sleep(20)
 
 def crop_and_analyze(image_array):
 
