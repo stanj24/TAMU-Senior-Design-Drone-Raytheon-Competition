@@ -502,7 +502,7 @@ dist_array = distances_from_depth_image(obstacle_line_height, depth_mat, distanc
 check_obstacles(dist_array)
 
 # stop the camera
-pipe.close()
+pipe.stop()
 
 if debug_enable == 1:
     # Prepare the data
