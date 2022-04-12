@@ -11,6 +11,7 @@ import numpy as np
 import modules
 import math
 import argparse
+import datetime
 
 # Argument Parser -> for communication with the vehicle #
 parser = argparse.ArgumentParser(description='commands')
@@ -114,37 +115,45 @@ def condition_yaw(heading, relative=False): #This function is to set the drone a
     vehicle.send_mavlink(msg)
 
 ## MOVEMENT FUNCTIONS ##
-def forward_GPS_point(rounded_vertical):
+def forward_GPS_point(rounded_vertical): #New Going Forward Function - Jeremiah 
     Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
     Current_location_y_new = vehicle.location.global_relative_frame.lon
-    Longitude_new = translate_up_down(Current_location_x_new, Current_location_y_new, rounded_vertical, 0)
-    print("Flying forwards")
-    Travel_point = LocationGlobalRelative(Longitude_new, Current_location_y_new, 0)
-    vehicle.simple_goto(Travel_point)
+    New_straight_point = translate_up_down(Current_location_x_new, Current_location_y_new, rounded_vertical, 0)
+    print("Flying Straight")
+    Altitude = vehicle.location.global_relative_frame.alt
+    Travel_point_2 = LocationGlobalRelative(New_straight_point, Current_location_y_new, Altitude)
+    vehicle.simple_goto(Travel_point_2)
+    time.sleep(10)
 
-def backwards_GPS_point(rounded_vertical):
+def backwards_GPS_point(rounded_vertical): #New Going Function - Jeremiah 
     Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
     Current_location_y_new = vehicle.location.global_relative_frame.lon
-    Longitude_new = translate_up_down(Current_location_x_new, Current_location_y_new, -1*rounded_vertical, 0)
-    print("Flying backwards")
-    Travel_point = LocationGlobalRelative(Longitude_new, Current_location_y_new, 0)
-    vehicle.simple_goto(Travel_point)
+    New_straight_point = translate_up_down(Current_location_x_new, Current_location_y_new, -1*rounded_vertical, 0)
+    print("Flying Backwards")
+    Altitude = vehicle.location.global_relative_frame.alt
+    Travel_point_2 = LocationGlobalRelative(New_straight_point, Current_location_y_new, Altitude)
+    vehicle.simple_goto(Travel_point_2)
+    time.sleep(10)
 
-def left_GPS_point(rounded_horizontal):
+def left_GPS_point(rounded_horizontal): #New Going Function - Jeremiah 
     Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
     Current_location_y_new = vehicle.location.global_relative_frame.lon
     Longitude_new = translate_latlong(Current_location_x_new, Current_location_y_new, 0, -1*rounded_horizontal)
     print("Flying left")
-    Travel_point = LocationGlobalRelative(Current_location_x_new, Longitude_new, 0)
+    Altitude = vehicle.location.global_relative_frame.alt
+    Travel_point = LocationGlobalRelative(Current_location_x_new, Longitude_new, Altitude)
     vehicle.simple_goto(Travel_point)
+    time.sleep(10)
 
-def right_GPS_point(rounded_horizontal):
+def right_GPS_point(rounded_horizontal): #New Going Function - Jeremiah 
     Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
     Current_location_y_new = vehicle.location.global_relative_frame.lon
     Longitude_new = translate_latlong(Current_location_x_new, Current_location_y_new, 0, rounded_horizontal)
     print("Flying right")
-    Travel_point = LocationGlobalRelative(Current_location_x_new, Longitude_new, 0)
+    Altitude = vehicle.location.global_relative_frame.alt
+    Travel_point = LocationGlobalRelative(Current_location_x_new, Longitude_new, Altitude)
     vehicle.simple_goto(Travel_point)
+    time.sleep(10)
 
 ######################################################
 ##  Depth parameters - reconfigurable               ##
@@ -267,7 +276,7 @@ def realsense_connect():
 ### PROCESS FUNCTIONS ##################################################################################################
 def take_image():
     ''' Get depth image from RealSense camera. Pipeline must be started in main() before calling'''
-    #time.sleep(3)
+    time.sleep(3)
     # get depth frame
     frames = pipe.wait_for_frames()
     depth_frame = frames.get_depth_frame()
@@ -282,8 +291,11 @@ def take_image():
     # Extract depth in matrix form
     depth_data = filtered_frame.as_frame().get_data()
     depth_mat = np.asanyarray(depth_data)
+    
+    # Save images
+    color_image = np.asanyarray(color_frame.get_data())
 
-    return depth_frame, color_frame, filtered_frame, depth_mat
+    return depth_frame, color_frame, filtered_frame, depth_mat, color_image
 
 def apply_filters(frame, DEPTH_RANGE_M):
     ''' Apply post-processing filters to depth image to fill holes'''
@@ -454,11 +466,13 @@ def check_obstacles(dist_array):
             print("OBSTACLE SEEN: LAND")
             vehicle.mode = VehicleMode("LAND") # Land the drone immediately
             vehicle.close()
+            break
         else:
             print("NO OBSTACLE: MOVE BACK")
-            backwards_GPS_point(2) # if obstacle is NOT recognized -> move backwards
+            backwards_GPS_point(5) # if obstacle is NOT recognized -> move backwards
             vehicle.mode = VehicleMode("LAND") # Land the drone
             vehicle.close()
+            break
 
 
 # Begin of the main loop
@@ -471,10 +485,13 @@ condition_yaw(0) # position drone straight
 # move forward 5 feet
 forward_GPS_point(5)
 
-# HOVER???>
-
 # take image
-depth_frame, color_frame, filtered_frame, depth_mat = take_image()
+depth_frame, color_frame, filtered_frame, depth_mat, color_image = take_image()
+
+# save images 
+ct = datetime.datetime.now()
+cv2.imwrite("depthim_"+str(ct)+".jpg", depth_mat)
+cv2.imwrite("colorim_"+str(ct)+".jpg", color_image)
 
 # Create obstacle distance data from depth image
 obstacle_line_height = find_obstacle_line_height()
