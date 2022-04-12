@@ -12,14 +12,14 @@ args = parser.parse_args()
 connection_string = args.connect
 # Connect to the Vehicle
 print ('Connecting to vehicle on: %s' % connection_string)
-vehicle = connect(args.connect, baud=921600, wait_ready=True)
+vehicle = connect(args.connect, baud=57600, wait_ready=True)
 
 def arm_and_takeoff(aTargetAltitude):
     print("Basic pre-arm checks")
     # Don't let the user try to arm until autopilot is ready
     while not vehicle.is_armable:
         print(" Waiting for vehicle to initialise...")
-        time.sleep(1)
+        time.sleep(5)
 
     print("Arming motors")
     # Copter should arm in GUIDED mode
