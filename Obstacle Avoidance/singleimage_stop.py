@@ -290,7 +290,7 @@ def take_image():
 
     # Extract depth in matrix form
     depth_data = filtered_frame.as_frame().get_data()
-    depth_mat = np.asanyarray(depth_data)
+    depth_mat = np.asanyarray(colorizer.colorize(filtered_frame).get_data())
     
     # Save images
     color_image = np.asanyarray(color_frame.get_data())
