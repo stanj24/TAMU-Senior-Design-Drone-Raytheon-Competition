@@ -1,0 +1,13 @@
+Stanley Johnson
+- Worked to get Challenge 1 validated
+- Moving left/right causes a drop in elevation, issue that needs to be fixed
+
+Suzanne Thomas 
+- Challenge 1 validation process
+- Navigation issue with drops in elevation when moving left/right
+- Work on incremental tests for obstacle avoidance and fixing issue with saving images
+
+Jeremiah Lockhart 
+- Fully validated challenge 1 code 
+- Tried to deduce issue with left and right navigation 
+- Worked on method to try to fix reference frame travel direction 
