@@ -27,6 +27,9 @@ parser = argparse.ArgumentParser(description='commands')
 parser.add_argument('--connect', default='127.0.0.1:14551')
 args = parser.parse_args()
 connection_string = args.connect
+
+img_og = cv2.imread("TAM-LogoBox.jpg")
+
 # Connect to the Vehicle
 print ('Connecting to vehicle on: %s' % connection_string)
 vehicle = connect(args.connect, baud=921600, wait_ready=True)
@@ -169,7 +172,7 @@ def forward_GPS_point(rounded_vertical): #New Going Forward Function - Jeremiah
     Altitude = vehicle.location.global_relative_frame.alt
     Travel_point_2 = LocationGlobalRelative(New_straight_point, Current_location_y_new, Altitude)
     vehicle.simple_goto(Travel_point_2)
-    time.sleep(20)
+    time.sleep(10)
 
 def backwards_GPS_point(rounded_vertical): #New Going Function - Jeremiah 
     Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
@@ -179,7 +182,7 @@ def backwards_GPS_point(rounded_vertical): #New Going Function - Jeremiah
     Altitude = vehicle.location.global_relative_frame.alt
     Travel_point_2 = LocationGlobalRelative(New_straight_point, Current_location_y_new, Altitude)
     vehicle.simple_goto(Travel_point_2)
-    time.sleep(20)
+    time.sleep(10)
 
 def left_GPS_point(rounded_horizontal): #New Going Function - Jeremiah 
     Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
@@ -189,7 +192,7 @@ def left_GPS_point(rounded_horizontal): #New Going Function - Jeremiah
     Altitude = vehicle.location.global_relative_frame.alt
     Travel_point = LocationGlobalRelative(Current_location_x_new, Longitude_new, Altitude)
     vehicle.simple_goto(Travel_point)
-    time.sleep(20)
+    time.sleep(10)
 
 def right_GPS_point(rounded_horizontal): #New Going Function - Jeremiah 
     Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
@@ -199,220 +202,28 @@ def right_GPS_point(rounded_horizontal): #New Going Function - Jeremiah
     Altitude = vehicle.location.global_relative_frame.alt
     Travel_point = LocationGlobalRelative(Current_location_x_new, Longitude_new, Altitude)
     vehicle.simple_goto(Travel_point)
-    time.sleep(20)
-
-def crop_and_analyze(image_array):
-
-    height = image_array.shape[0]
-    width = image_array.shape[1]
-    img_og = cv2.imread("TAM-LogoBox.jpg")
-    
-    #1-1
-    left = 0
-    top = 0
-    right = int(width / 3)
-    bottom = int(height / 3)
-    im1 = image_array[top:bottom, left:right]
-    pred1 = evaluate_image(img_og, im1)
-    plt.imshow(im1)
-    plt.show()
-    print("Section 1-1")
-    print(pred1)
-    
-    #1-2
-    left = int(width / 3)
-    top = 0
-    right = int(2 * width / 3)
-    bottom = int(height / 3)
-    im2 = image_array[top:bottom, left:right]
-    pred2 = evaluate_image(img_og, im2)
-    plt.imshow(im2)
-    plt.show()
-    print("Section 1-2")
-    print(pred2)
-    
-    #1-3
-    left = int(2 * width / 3)
-    top = 0
-    right = width
-    bottom = int(height / 3)
-    im3 = image_array[top:bottom, left:right]
-    pred3 = evaluate_image(img_og, im3)
-    plt.imshow(im3)
-    plt.show()
-    print("Section 1-3")
-    print(pred3)
-    
-    #2-1
-    left = 0
-    top = int(height / 3)
-    right = int(width / 3)
-    bottom = int(2 * height / 3)
-    im4 = image_array[top:bottom, left:right]
-    pred4 = evaluate_image(img_og, im4)
-    plt.imshow(im4)
-    plt.show()
-    print("Section 2-1")
-    print(pred4)
-    
-    #2-2
-    left = int(width / 3)
-    top = int(height / 3)
-    right = int(2 * width / 3)
-    bottom = int(2 * height / 3)
-    im5 = image_array[top:bottom, left:right]
-    pred5 = evaluate_image(img_og, im5)
-    plt.imshow(im5)
-    plt.show()
-    print("Section 2-2")
-    print(pred5)
-    
-    #2-3
-    left = int(2 * width / 3)
-    top = int(height / 3)
-    right = width
-    bottom = int(2 * height / 3)
-    im6 = image_array[top:bottom, left:right]
-    pred6 = evaluate_image(img_og, im6)
-    plt.imshow(im6)
-    plt.show()
-    print("Section 2-3")
-    print(pred6)
-    
-    #3-1
-    left = 0
-    top = int(2 * height / 3)
-    right = int(width / 3)
-    bottom = height
-    im7 = image_array[top:bottom, left:right]
-    pred7 = evaluate_image(img_og, im7)
-    plt.imshow(im7)
-    plt.show()
-    print("Section 3-1")
-    print(pred7)
-    
-    #3-2
-    left = int(width / 3)
-    top = int(2 * height / 3)
-    right = int(2 * width / 3)
-    bottom = height
-    im8 = image_array[top:bottom, left:right]
-    pred8 = evaluate_image(img_og, im8)
-    plt.imshow(im8)
-    plt.show()
-    print("Section 3-2")
-    print(pred8)
-    
-    #3-3
-    left = int(2 * width / 3)
-    top = int(2 * height / 3)
-    right = width
-    bottom = height
-    im9 = image_array[top:bottom, left:right]
-    pred9 = evaluate_image(img_og, im9)
-    plt.imshow(im9)
-    plt.show()
-    print("Section 3-3")
-    print(pred9)
-    
-    #calculate region with the highest probablity of having the logo
-    maximum = max(pred1, pred2, pred3, pred4, pred5, pred6, pred7, pred8, pred9)
-    
-    if(pred1 == maximum):
-        return [1, 1], pred1
-    elif(pred2 == maximum):
-        return [1, 2], pred2
-    elif(pred3 == maximum):
-        return [1, 3], pred3
-    elif(pred4 == maximum):
-        return [2, 1], pred4
-    elif(pred5 == maximum):
-        return [2, 2], pred5
-    elif(pred6 == maximum):
-        return [2, 3], pred6
-    elif(pred7 == maximum):
-        return [3, 1], pred7
-    elif(pred8 == maximum):
-        return [3, 2], pred8
-    elif(pred9 == maximum):
-        return [3, 3], pred9
-
-def shift_drone_position(elevation, position_array):   
-    # The RGB FOV is 69 deg x 42 deg (H X V)
-    # 34.5 (69/2) is 34.5/180*pi
-    # 21 (42/2) is 21/180*pi
-
-    horizontal_shift = elevation * np.tan(34.5/180*np.pi)
-    vertical_shift = elevation * np.tan(21/180*np.pi)
-
-    rounded_horizontal = round(horizontal_shift)
-    rounded_vertical = round(vertical_shift)
-    
-    if (position_array[0] == 1):
-        #go left some predetermined distance
-        left_GPS_point(rounded_horizontal)
-    elif (position_array[0] == 3):
-        #go right some predetermined distance
-        right_GPS_point(rounded_horizontal)
-
-    if (position_array[1] == 1):
-        #go up some predetermined distance
-        forward_GPS_point(rounded_vertical)
-    elif (position_array[1] == 3):
-        #go down some predetermined distance
-        backwards_GPS_point(rounded_vertical)
-
-    # this makes the drone go down 5m
-    Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
-    Current_location_y_new = vehicle.location.global_relative_frame.lon
-    new_altitude = vehicle.location.global_relative_frame.alt-5
-    Travel_point = LocationGlobalRelative(Current_location_x_new, Current_location_y_new, new_altitude)
-    vehicle.simple_goto(Travel_point)
+    time.sleep(10)
 
 #Rough draft function for going left
-def Search_Pattern_Left(Starting_travel_coordinates):
+def Search_Pattern_Left():
     #this is an initial check before we start to go left
     #take picture
     pic = take_image()
-    pos_arr, val = crop_and_analyze(pic)
+    val = evaluate_image(img_og, pic)
     if (val > 15): #if pixel count is greater than 15, start homing
-        first_run = True
-        while(int(vehicle.location.global_relative_frame.alt) > 1): #until it's less than 1m from the ground
-            if (first_run):
-                shift_drone_position(vehicle.location.global_relative_frame.alt, pos_arr)
-                first_run = False
-            else:
-                #take new picture since we're at a different elevation
-                pic = take_image()
-                pos_arr, val = crop_and_analyze(pic)
-                shift_drone_position(vehicle.location.global_relative_frame.alt, pos_arr)
         print("Time to land")
         vehicle.mode = VehicleMode("LAND")
         vehicle.close()
 
     x = 0
     while(x < 5):
-        Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
-        Current_location_y_new = vehicle.location.global_relative_frame.lon
-        Travel_coordinates = (Current_location_x_new, 0)
-        Longitude_new = translate_latlong(Current_location_x_new, Current_location_y_new, 0, -5)
-        print("Flying left")
-        Travel_point = LocationGlobalRelative(Current_location_x_new, Longitude_new, 0)
-        vehicle.simple_goto(Travel_point)
-        time.sleep(10)
-        distance_traveled = (geopy.distance.geodesic(Starting_travel_coordinates, Travel_coordinates).m) #Print out the distance in meters between two points
-        if (int(distance_traveled) > 95):
-            print("Went too far, time to land")
-            vehicle.mode = VehicleMode("LAND")
-            vehicle.close()
+        left_GPS_point(5)
+        time.sleep(5)
 
         #take picture
         pic = take_image()
-        pos_arr, val = crop_and_analyze(pic)
+        val = evaluate_image(img_og, pic)
         if (val > 15): #if pixel count is greater than 15, start homing
-            while(int(vehicle.location.global_relative_frame.alt) > 1): #until it's less than 1m from the ground
-                #take new picture
-                shift_drone_position(pic, vehicle.location.global_relative_frame.alt, pos_arr)
             print("Time to land")
             vehicle.mode = VehicleMode("LAND")
             vehicle.close()
@@ -420,58 +231,29 @@ def Search_Pattern_Left(Starting_travel_coordinates):
         x = x+1
     
     if (x == 5): #reached end of field, time to go straight
-        Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
-        Current_location_y_new = vehicle.location.global_relative_frame.lon
-        Longitude_new = translate_up_down(Current_location_x_new, Current_location_y_new, 3, 0)
-        print("Flying forward")
-        Travel_point = LocationGlobalRelative(Longitude_new, Current_location_y_new, 0)
-        vehicle.simple_goto(Travel_point)
+        forward_GPS_point(3)
     else:
         print("Error or we landed")
 
-def Search_Pattern_Right(Starting_travel_coordinates):
+def Search_Pattern_Right():
     #this is an initial check before we start to go right
     #take picture
     pic = take_image()
-    pos_arr, val = crop_and_analyze(pic)
+    val = evaluate_image(img_og, pic)
     if (val > 15): #if pixel count is greater than 15, start homing
-        first_run = True
-        while(int(vehicle.location.global_relative_frame.alt) > 1): #until it's less than 1m from the ground
-            if (first_run):
-                shift_drone_position(vehicle.location.global_relative_frame.alt, pos_arr)
-                first_run = False
-            else:
-                #take new picture since we're at a different elevation
-                pic = take_image()
-                pos_arr, val = crop_and_analyze(pic)
-                shift_drone_position(vehicle.location.global_relative_frame.alt, pos_arr)
         print("Time to land")
         vehicle.mode = VehicleMode("LAND")
         vehicle.close()
 
     x = 0
     while(x < 5):
-        Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
-        Current_location_y_new = vehicle.location.global_relative_frame.lon
-        Travel_coordinates = (Current_location_x_new, 0)
-        Longitude_new = translate_latlong(Current_location_x_new, Current_location_y_new, 0, 5)
-        print("Flying right")
-        Travel_point = LocationGlobalRelative(Current_location_x_new, Longitude_new, 0)
-        vehicle.simple_goto(Travel_point)
-        time.sleep(10)
-        distance_traveled = (geopy.distance.geodesic(Starting_travel_coordinates, Travel_coordinates).m) #Print out the distance in meters between two points
-        if (int(distance_traveled) > 95):
-            print("Went too far, time to land")
-            vehicle.mode = VehicleMode("LAND")
-            vehicle.close()
+        right_GPS_point(5)
+        time.sleep(5)
 
         #take picture
         pic = take_image()
-        pos_arr, val = crop_and_analyze(pic)
+        val = evaluate_image(img_og, pic)
         if (val > 15): #if pixel count is greater than 15, start homing
-            while(int(vehicle.location.global_relative_frame.alt) > 1): #until it's less than 1m from the ground
-                #take new picture
-                shift_drone_position(pic, vehicle.location.global_relative_frame.alt, pos_arr)
             print("Time to land")
             vehicle.mode = VehicleMode("LAND")
             vehicle.close()
@@ -489,17 +271,17 @@ def Search_Pattern_Right(Starting_travel_coordinates):
         print("Error or we landed")
 
 
-coords_1 = (52.2296756, 21.0122287)
-coords_2 = (52.406374, 16.9251681)
+#coords_1 = (52.2296756, 21.0122287)
+#coords_2 = (52.406374, 16.9251681)
 
-print(geopy.distance.geodesic(coords_1, coords_2).m) #Print out the distance in meters between two points
+#print(geopy.distance.geodesic(coords_1, coords_2).m) #Print out the distance in meters between two points
 
 # main code
 arm_and_takeoff(7)
 condition_yaw(0)
-Starting_location_x= vehicle.location.global_relative_frame.lat
-Starting_location_y= vehicle.location.global_relative_frame.lon
-Starting_travel_coordinates = (Starting_location_x, 0)
+#Starting_location_x= vehicle.location.global_relative_frame.lat
+#Starting_location_y= vehicle.location.global_relative_frame.lon
+#Starting_travel_coordinates = (Starting_location_x, 0)
 
 pipeline = rs.pipeline()
 config = rs.config()
@@ -512,13 +294,8 @@ right_GPS_point(a)
 
 #starting on the right side
 for i in range(3):
-    Search_Pattern_Left(Starting_travel_coordinates)
-
-    Starting_location_x= vehicle.location.global_relative_frame.lat
-    Starting_location_y= vehicle.location.global_relative_frame.lon
-    Starting_travel_coordinates = (Starting_location_x, 0)
-
-    Search_Pattern_Right(Starting_travel_coordinates)
+    Search_Pattern_Left()
+    Search_Pattern_Right()
 
 
 pipeline.stop()
