@@ -12,14 +12,14 @@ args = parser.parse_args()
 connection_string = args.connect
 # Connect to the Vehicle
 print ('Connecting to vehicle on: %s' % connection_string)
-vehicle = connect(args.connect, baud=57600, wait_ready=True)
+vehicle = connect(args.connect, baud=921600, wait_ready=True)
 
 def arm_and_takeoff(aTargetAltitude):
     print("Basic pre-arm checks")
     # Don't let the user try to arm until autopilot is ready
     while not vehicle.is_armable:
         print(" Waiting for vehicle to initialise...")
-        time.sleep(5)
+        time.sleep(1)
 
     print("Arming motors")
     # Copter should arm in GUIDED mode
@@ -111,25 +111,25 @@ def Move_Left(Distance_to_move):
     Longitude_new = translate_latlong(Current_location_x_new, Current_location_y_new, 0, -1*Distance_to_move)
     print("Flying left")
     Altitude = vehicle.location.global_relative_frame.alt
-    Travel_point = LocationGlobalRelative(Current_location_x_new, Longitude_new, Altitude)
+    Travel_point = LocationGlobalRelative(Current_location_x_new, Longitude_new, 7)
     vehicle.simple_goto(Travel_point)
-    time.sleep(20)
+    time.sleep(10)
 def Move_Right(Distance_to_move):
     Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
     Current_location_y_new = vehicle.location.global_relative_frame.lon
     Longitude_new = translate_latlong(Current_location_x_new, Current_location_y_new, 0, Distance_to_move)
     print("Flying right")
     Altitude = vehicle.location.global_relative_frame.alt
-    Travel_point = LocationGlobalRelative(Current_location_x_new, Longitude_new, Altitude)
+    Travel_point = LocationGlobalRelative(Current_location_x_new, Longitude_new, 7)
     vehicle.simple_goto(Travel_point)
-    time.sleep(20)
+    time.sleep(10)
 def Move_Straight(Distance_to_move):
     Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting points
     Current_location_y_new = vehicle.location.global_relative_frame.lon
     New_straight_point = translate_up_down(Current_location_x_new, Current_location_y_new, Distance_to_move, 0)
     print("Flying Straight")
     Altitude = vehicle.location.global_relative_frame.alt
-    Travel_point_2 = LocationGlobalRelative(New_straight_point, Current_location_y_new, Altitude)
+    Travel_point_2 = LocationGlobalRelative(New_straight_point, Current_location_y_new, 7)
     vehicle.simple_goto(Travel_point_2)
     time.sleep(20)
 def Move_Backwards(Distance_to_move):
@@ -140,19 +140,59 @@ def Move_Backwards(Distance_to_move):
     Altitude = vehicle.location.global_relative_frame.alt
     Travel_point_2 = LocationGlobalRelative(New_straight_point, Current_location_y_new, Altitude)
     vehicle.simple_goto(Travel_point_2)
-    time.sleep(20)
+    time.sleep(10)
+def Move_Downwards(Distance_to_move):
+    Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
+    Current_location_y_new = vehicle.location.global_relative_frame.lon
+    #New_straight_point = translate_up_down(Current_location_x_new, Current_location_y_new, -1 * Distance_to_move, 0)
+    print("Flying Downwards")
+    Altitude = vehicle.location.global_relative_frame.alt
+    Altitude_new = Altitude - Distance_to_move
+    Travel_point_2 = LocationGlobalRelative(Current_location_x_new, Current_location_y_new, Altitude_new)
+    vehicle.simple_goto(Travel_point_2)
+    time.sleep(10)
+def Move_Upwards(Distance_to_move):
+    Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
+    Current_location_y_new = vehicle.location.global_relative_frame.lon
+    New_straight_point = translate_up_down(Current_location_x_new, Current_location_y_new, -1 * Distance_to_move, 0)
+    print("Flying Backwards")
+    Altitude = vehicle.location.global_relative_frame.alt
+    Travel_point_2 = LocationGlobalRelative(New_straight_point, Current_location_y_new, Altitude)
+    vehicle.simple_goto(Travel_point_2)
+    time.sleep(10)
 
 
-coords_1 = (52.2296756, 21.0122287)
-coords_2 = (52.406374, 16.9251681)
+
+#coords_1 = (52.2296756, 21.0122287)
+#coords_2 = (52.406374, 16.9251681)
 
 #print(geopy.distance.geodesic(coords_1, coords_2).m) #Print out the distance in meters between two points
 
-arm_and_takeoff(10)
-condition_yaw(0)
+arm_and_takeoff(7)
 Current_location_x= vehicle.location.global_relative_frame.lat
 Current_location_y= vehicle.location.global_relative_frame.lon
-Move_Straight(5)
-print("Time to land ")
+Starting_coordinates=(Current_location_x,0)
+#Moving left and Right
+Move_Left(20)
+Move_Right(20)
+print("Time to land")
 vehicle.mode = VehicleMode("LAND")
 vehicle.close()
+#Moving straight and backwards code
+'''
+Move_Straight(28)
+New_Current_location_x=vehicle.location.global_relative_frame.lat
+New_Current_location_y=vehicle.location.global_relative_frame.lon
+Traveled_X_direction_coord = (New_Current_location_x,0)
+print("Distance Traveled in X Direction:")
+print(geopy.distance.geodesic(Starting_coordinates, Traveled_X_direction_coord).m)
+Move_Backwards(28)
+New_Current_location_x_1=vehicle.location.global_relative_frame.lat
+New_Current_location_y_1=vehicle.location.global_relative_frame.lon
+Traveled_X_direction_coord_1 = (New_Current_location_x_1,0)
+print("Distance Traveled in X Direction:")
+print(geopy.distance.geodesic(Traveled_X_direction_coord, Traveled_X_direction_coord_1).m)
+print("Time to land")
+vehicle.mode = VehicleMode("LAND")
+vehicle.close()
+'''
