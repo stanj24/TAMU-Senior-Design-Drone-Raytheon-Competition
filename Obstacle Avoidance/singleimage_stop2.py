@@ -282,6 +282,10 @@ def realsense_connect():
     depth_sensor = profile.get_device().first_depth_sensor()
     depth_scale = depth_sensor.get_depth_scale()
     print("INFO: Depth scale is: %s" % depth_scale)
+    
+    # ADD ON - EXPOSURE #
+    # s = profile.get_device().query_sensors()[1]
+    # s.set_option(rs.option.exposure, 1) # set exposure at 1ms to reduce motion artifacts
 
 
 ########################################################################################################################
