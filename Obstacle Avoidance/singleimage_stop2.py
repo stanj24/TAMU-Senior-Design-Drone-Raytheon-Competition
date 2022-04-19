@@ -192,7 +192,7 @@ filters = [
     [True, "Depth to Disparity", rs.disparity_transform(True)],
     [True, "Spatial Filter", rs.spatial_filter()],
     [True, "Temporal Filter", rs.temporal_filter()],
-    [False, "Hole Filling Filter", rs.hole_filling_filter()],
+    [True, "Hole Filling Filter", rs.hole_filling_filter()],
     [True, "Disparity to Depth", rs.disparity_transform(False)]
 ]
 
@@ -503,7 +503,18 @@ while count <= 0:
     # take image
     # depth_frame, color_frame, filtered_frame, depth_mat, color_image = take_image()
     depth_frame, color_frame, depth_image, color_image = take_image3()
-
+    
+    # apply filters #################################################################################
+    # filtered_frame = depth_frame
+    # for i in range(len(filters)):
+        # if filters[i][0] is True:
+            # filtered_frame = filters[i][2].process(filtered_frame)
+    
+    # Extract depth in matrix form
+    # depth_data = filtered_frame.as_frame().get_data()
+    # filt_depth_image = np.asanyarray(depth_data)
+    ###########################################################################################################
+    
     # save images
     ct = datetime.datetime.now()
 
@@ -516,7 +527,7 @@ while count <= 0:
     # Create obstacle distance data from depth image
     obstacle_line_height = find_obstacle_line_height()
     dist_array = distances_from_depth_image(obstacle_line_height, depth_image, distances, DEPTH_RANGE_M[0], DEPTH_RANGE_M[1],
-                                            obstacle_line_thickness_pixel)
+                                            obstacle_line_thickness_pixel) # if using FILTERS - replace "depth_image" with "filt_depth_image"
 
     # check for obstacle and do appropriate movement
     check_obstacles(dist_array)
