@@ -1,4 +1,4 @@
-# this code is meant to show that the logo is recognized and the drone performs an action accordingly
+# this code is meant to show that a non-texas A&M flag is NOT recognized and the drone performs an action accordingly
 
 
 
@@ -203,7 +203,7 @@ ct1 = datetime.datetime.now()
 cv2.imwrite("initial_image_" + str(ct1) + ".jpg", a)
 ev1 = evaluate_image(img_og, a)
 
-with open('logo_validation_data.txt', 'a') as f:
+with open('non_logo_validation_data.txt', 'a') as f:
     f.write("Recorded height is " + str(int(vehicle.location.global_relative_frame.alt)))
     f.write("\n")
     f.write(str(ev1) + " pixels matching initially")
@@ -218,10 +218,10 @@ ev2 = evaluate_image(img_og, b)
 print(str(ev2) + " pixels matching after moving forward")
 if (ev2 > 15):
     cv2.imwrite("logo_image_success_" + str(ct2) + ".jpg", a)
-    with open('logo_validation_data.txt', 'a') as f:
+    with open('non_logo_validation_data.txt', 'a') as f:
         f.write("Recorded height is " + str(int(vehicle.location.global_relative_frame.alt)))
         f.write("\n")
-        f.write(str(ev2) + " pixels matching after moving forward to look for logo(success)")
+        f.write(str(ev2) + " pixels matching after moving forward to look for logo(found)")
         f.write("\n")
         f.write("\n")
         f.write("\n")
@@ -230,10 +230,10 @@ if (ev2 > 15):
     vehicle.close()
 else:
     cv2.imwrite("logo_image_failed_" + str(ct2) + ".jpg", a)
-    with open('logo_validation_data.txt', 'a') as f:
+    with open('non_logo_validation_data.txt', 'a') as f:
         f.write("Recorded height is " + str(int(vehicle.location.global_relative_frame.alt)))
         f.write("\n")
-        f.write(str(ev2) + " pixels matching after moving forward to look for logo(failed)")
+        f.write(str(ev2) + " pixels matching after moving forward to look for logo(not found)")
         f.write("\n")
         f.write("\n")
         f.write("\n")
