@@ -416,6 +416,8 @@ def find_obstacle_line_height():
 
 def distances_from_depth_image(obstacle_line_height, depth_mat, distances, min_depth_m, max_depth_m,
                                obstacle_line_thickness_pixel):
+    '''Create the distance array which is used to find the closest obstacle.
+        Return size 72 array.'''
     # Depth image dimensions 
     depth_img_width = depth_mat.shape[1]
     depth_img_height = depth_mat.shape[0]
@@ -435,7 +437,7 @@ def distances_from_depth_image(obstacle_line_height, depth_mat, distances, min_d
         upper_pixel = center_pixel + obstacle_line_thickness_pixel / 2
         lower_pixel = center_pixel - obstacle_line_thickness_pixel / 2
 
-        # Sanity checks
+        # Sanity checks -- checking if the pixels are wihtin the dimensions of the depth image 
         if upper_pixel > depth_img_height:
             upper_pixel = depth_img_height
         elif upper_pixel < 1:
@@ -445,10 +447,10 @@ def distances_from_depth_image(obstacle_line_height, depth_mat, distances, min_d
         elif lower_pixel < 0:
             lower_pixel = 0
 
-        # Converting depth from uint16_t unit to metric unit. depth_scale is usually 1mm following ROS convention.
+        # Converting depth from uint16_t unit to metric unit. depth_scale is usually 1mm
         # dist_m = depth_mat[int(obstacle_line_height), int(i * step)] * depth_scale
         min_point_in_scan = np.min(depth_mat[int(lower_pixel):int(upper_pixel), int(i * step)])
-        dist_m = min_point_in_scan * depth_scale
+        dist_m = min_point_in_scan * depth_scale # in meters
 
         # Default value, unless overwritten:
         #   A value of max_distance + 1 (cm) means no obstacle is present.
@@ -460,21 +462,26 @@ def distances_from_depth_image(obstacle_line_height, depth_mat, distances, min_d
             distances[i] = dist_m * 100
     return distances
 
-
 def check_obstacles(dist_array):
+    '''Drone checks for collisions.'''
+    # find the closest obstacle in the distance array 
     min_dist = min(dist_array)
     #min_dist = np.min(dist_array[np.nonzero(dist_array)])
     # is obstacle present?
     if min_dist < 200:  # distance to obstacle is less than 2 m away
         print("Obstacle found at distance: ",min_dist," cm")
         print("OBSTACLE SEEN: LAND")
-        vehicle.mode = VehicleMode("LAND")  # Land the drone immediately
+        ## CHANGE TO APPROPRIATE MOVEMENT BASED ON TEST 
+        vehicle.mode = VehicleMode("LAND")  # Land the drone immediatel
+        ##################################################
         vehicle.close()
     else:
         print("NO OBSTACLE: MOVE BACK")
         print("closest obstacle: ", min_dist)
+        ## CHANGE TO APPROPRIATE MOVEMENT BASED ON TEST 
         backwards_GPS_point(5)  # if obstacle is NOT recognized -> move backwards
         vehicle.mode = VehicleMode("LAND")  # Land the drone
+        #########################################################
         vehicle.close()
 
 
@@ -494,20 +501,21 @@ while count <= 0:
     # depth_frame, color_frame, filtered_frame, depth_mat, color_image = take_image()
     depth_frame, color_frame, depth_image, color_image = take_image3()
     
-    # apply filters #################################################################################
-    # filtered_frame = depth_frame
-    # for i in range(len(filters)):
-        # if filters[i][0] is True:
-            # filtered_frame = filters[i][2].process(filtered_frame)
+    # apply filters ###########################################################################
+    filtered_frame = depth_frame
+    for i in range(len(filters)):
+        if filters[i][0] is True:
+            filtered_frame = filters[i][2].process(filtered_frame)
     
     # Extract depth in matrix form
-    # depth_data = filtered_frame.as_frame().get_data()
-    # filt_depth_image = np.asanyarray(depth_data)
+    depth_data = filtered_frame.as_frame().get_data()
+    filt_depth_image = np.asanyarray(depth_data)
     ###########################################################################################################
     
     # save images
     ct = datetime.datetime.now()
-
+    
+    # colorize images to save and see depth differences # 
     depth_im = np.asanyarray(colorizer.colorize(depth_frame).get_data())
     color_im = np.asanyarray(colorizer.colorize(color_frame).get_data())
 
