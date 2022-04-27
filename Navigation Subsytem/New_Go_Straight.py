@@ -86,21 +86,7 @@ def translate_up_down(lat, long, lat_translation_meters, long_translation_meters
     altitude = 0
 
     return lat_new #Changed
-def get_bearing(aLocation1, aLocation2):
-    """
-    Returns the bearing between the two LocationGlobal objects passed as parameters.
-
-    This method is an approximation, and may not be accurate over large distances and close to the
-    earth's poles. It comes from the ArduPilot test code:
-    https://github.com/diydrones/ardupilot/blob/master/Tools/autotest/common.py
-    """
-    off_x = aLocation2.lon - aLocation1.lon
-    off_y = aLocation2.lat - aLocation1.lat
-    bearing = 90.00 + math.atan2(-off_y, off_x) * 57.2957795
-    if bearing < 0:
-        bearing += 360.00
-    return bearing
-def new_go_straight_lat(lat1, lon1,b,d):
+def new_go_straight_lat(lat1, lon1,b,d): 
     origin = geopy.Point(lat1, lon1)
     destination = geopy.distance.geodesic(kilometers=d).destination(origin, b)
     lat2 = destination.latitude
@@ -113,7 +99,7 @@ def new_go_straight_long(lat1, lon1,b,d):
     return lon2
 
 
-def condition_yaw(heading, relative=False): #This function is to set the drone as straight
+def condition_yaw(heading, relative=False): #This function is to set the drone to a certain heading
     if relative:
         is_relative=1 #yaw relative to direction of travel
     else:
@@ -131,7 +117,7 @@ def condition_yaw(heading, relative=False): #This function is to set the drone a
     # send command to vehicle
     vehicle.send_mavlink(msg)
 
-#Rough draft function for going left
+#Functions for moving in all directions 
 def Move_Left(Distance_to_move):
     Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
     Current_location_y_new = vehicle.location.global_relative_frame.lon
@@ -168,6 +154,8 @@ def Move_Backwards(Distance_to_move):
     Travel_point_2 = LocationGlobalRelative(New_straight_point, Current_location_y_new, Altitude)
     vehicle.simple_goto(Travel_point_2)
     time.sleep(20)
+
+#Functions to return the new latitude and longitude points by inputting in starting points and the bearing  
 def Move_new_x(Distance_to_move,b):
     Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
     Current_location_y_new = vehicle.location.global_relative_frame.lon
@@ -186,20 +174,19 @@ def Move_new_y(Distance_to_move,b):
 
 coords_1 = (52.2296756, 21.0122287)
 coords_2 = (52.406374, 16.9251681)
-
-print(geopy.distance.geodesic(coords_1, coords_2).m) #Print out the distance in meters between two points
-
-arm_and_takeoff(10)
-condition_yaw(45)
+print(geopy.distance.geodesic(coords_1, coords_2).m) #Print out the distance in meters between two points, TEST CODE
+#Main Code 
+arm_and_takeoff(10) #Drone taking off to certain altitude measured in meters
+condition_yaw(45) #Setting the drone in a specified direction/heading measured in degrees
 Current_location_x= vehicle.location.global_relative_frame.lat
 Current_location_y= vehicle.location.global_relative_frame.lon
-New_straight_point_x = Move_new_x(30,45)
-New_straight_point_y= Move_new_y(30,45)
+New_straight_point_x = Move_new_x(30,45) #Finding new latitude points 
+New_straight_point_y= Move_new_y(30,45) #Finding new longitude points 
 print("Flying Straight")
 Altitude = vehicle.location.global_relative_frame.alt
-Travel_point_2 = LocationGlobalRelative(New_straight_point_x,New_straight_point_y,7)
-vehicle.simple_goto(Travel_point_2)
-time.sleep(20)
+Travel_point_2 = LocationGlobalRelative(New_straight_point_x,New_straight_point_y,7) #Setting flight travel points
+vehicle.simple_goto(Travel_point_2) #Drone flying to travel point
+time.sleep(20) #Hover for specified time in seconds 
 print("Time to land ")
-vehicle.mode = VehicleMode("LAND")
+vehicle.mode = VehicleMode("LAND") #Landing call
 vehicle.close()
