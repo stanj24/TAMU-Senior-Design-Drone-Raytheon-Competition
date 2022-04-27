@@ -26,14 +26,14 @@ args = parser.parse_args()
 connection_string = args.connect
 # Connect to the Vehicle
 print ('Connecting to vehicle on: %s' % connection_string)
-vehicle = connect(args.connect, baud=921600, wait_ready=True)
+vehicle = connect(args.connect, baud=57600, wait_ready=True)
 
 def arm_and_takeoff(aTargetAltitude):
     print("Basic pre-arm checks")
     # Don't let the user try to arm until autopilot is ready
     while not vehicle.is_armable:
         print(" Waiting for vehicle to initialise...")
-        time.sleep(1)
+        time.sleep(5)
 
     print("Arming motors")
     # Copter should arm in GUIDED mode
@@ -156,37 +156,45 @@ def evaluate_image(img1, img2):
     
     return mat #returns number of matching pixels
 
-def forward_GPS_point(rounded_vertical):
+def forward_GPS_point(rounded_vertical): #New Going Forward Function - Jeremiah 
     Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
     Current_location_y_new = vehicle.location.global_relative_frame.lon
-    Longitude_new = translate_up_down(Current_location_x_new, Current_location_y_new, rounded_vertical, 0)
-    print("Flying forwards")
-    Travel_point = LocationGlobalRelative(Longitude_new, Current_location_y_new, 0)
-    vehicle.simple_goto(Travel_point)
+    New_straight_point = translate_up_down(Current_location_x_new, Current_location_y_new, rounded_vertical, 0)
+    print("Flying Straight")
+    Altitude = vehicle.location.global_relative_frame.alt
+    Travel_point_2 = LocationGlobalRelative(New_straight_point, Current_location_y_new, 8)
+    vehicle.simple_goto(Travel_point_2)
+    time.sleep(10)
 
-def backwards_GPS_point(rounded_vertical):
+def backwards_GPS_point(rounded_vertical): #New Going Function - Jeremiah 
     Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
     Current_location_y_new = vehicle.location.global_relative_frame.lon
-    Longitude_new = translate_up_down(Current_location_x_new, Current_location_y_new, -1*rounded_vertical, 0)
-    print("Flying backwards")
-    Travel_point = LocationGlobalRelative(Longitude_new, Current_location_y_new, 0)
-    vehicle.simple_goto(Travel_point)
+    New_straight_point = translate_up_down(Current_location_x_new, Current_location_y_new, -1*rounded_vertical, 0)
+    print("Flying Backwards")
+    Altitude = vehicle.location.global_relative_frame.alt
+    Travel_point_2 = LocationGlobalRelative(New_straight_point, Current_location_y_new, 5)
+    vehicle.simple_goto(Travel_point_2)
+    time.sleep(10)
 
-def left_GPS_point(rounded_horizontal):
+def left_GPS_point(rounded_horizontal): #New Going Function - Jeremiah 
     Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
     Current_location_y_new = vehicle.location.global_relative_frame.lon
     Longitude_new = translate_latlong(Current_location_x_new, Current_location_y_new, 0, -1*rounded_horizontal)
     print("Flying left")
-    Travel_point = LocationGlobalRelative(Current_location_x_new, Longitude_new, 0)
+    Altitude = vehicle.location.global_relative_frame.alt
+    Travel_point = LocationGlobalRelative(Current_location_x_new, Longitude_new, Altitude)
     vehicle.simple_goto(Travel_point)
+    time.sleep(10)
 
-def right_GPS_point(rounded_horizontal):
+def right_GPS_point(rounded_horizontal): #New Going Function - Jeremiah 
     Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
     Current_location_y_new = vehicle.location.global_relative_frame.lon
     Longitude_new = translate_latlong(Current_location_x_new, Current_location_y_new, 0, rounded_horizontal)
     print("Flying right")
-    Travel_point = LocationGlobalRelative(Current_location_x_new, Longitude_new, 0)
+    Altitude = vehicle.location.global_relative_frame.alt
+    Travel_point = LocationGlobalRelative(Current_location_x_new, Longitude_new, Altitude)
     vehicle.simple_goto(Travel_point)
+    time.sleep(10)
 
 # main code
 img_og = cv2.imread("TAM-LogoBox.jpg")
@@ -196,12 +204,17 @@ config.enable_stream(rs.stream.color, 1920, 1080, rs.format.bgr8, 8)
 # Start streaming
 pipeline.start(config)
 
-arm_and_takeoff(7)
+#drone starts flying to 8 meters
+arm_and_takeoff(8)
+#drone repositions itself north
 condition_yaw(0)
 
+#take an initial image in the air after rising
 a = take_image()
 ct1 = datetime.datetime.now()
 cv2.imwrite("initial_image_" + str(ct1) + ".jpg", a)
+
+#compare logo.jpg and the picture taken on the camera
 ev1 = evaluate_image(img_og, a)
 
 with open('logo_validation_data.txt', 'a') as f:
@@ -212,11 +225,17 @@ with open('logo_validation_data.txt', 'a') as f:
     f.write("\n")
 print(str(ev1) + " pixels matching initially")
 
-forward_GPS_point(5)
+#move forward 8 meters
+forward_GPS_point(8)
+#take a new image
 b = take_image()
 ct2 = datetime.datetime.now()
+
+#compare logo.jpg and the picture taken on the camera
 ev2 = evaluate_image(img_og, b)
 print(str(ev2) + " pixels matching after moving forward")
+
+#if the number of matching pixels is above 15, then logo is identified
 if (ev2 > 15):
     cv2.imwrite("logo_image_success_" + str(ct2) + ".jpg", b)
     with open('logo_validation_data.txt', 'a') as f:
@@ -226,9 +245,11 @@ if (ev2 > 15):
         f.write("\n")
         f.write("\n")
         f.write("\n")
+    #go ahead and land
     print("This meets the threshold, time to land")
     vehicle.mode = VehicleMode("LAND")
     vehicle.close()
+#if the number of matching pixels is <= 15, then logo is not identified
 else:
     cv2.imwrite("logo_image_failed_" + str(ct2) + ".jpg", b)
     with open('logo_validation_data.txt', 'a') as f:
@@ -238,10 +259,14 @@ else:
         f.write("\n")
         f.write("\n")
         f.write("\n")
+    #move backwards 5 meters
     print("This did NOT meet the threshold, let's go back and land")
     backwards_GPS_point(5)
+    
+    #now go ahead and land in original position
     print("Time to land")
     vehicle.mode = VehicleMode("LAND")
     vehicle.close()
 
 pipeline.stop()
+
