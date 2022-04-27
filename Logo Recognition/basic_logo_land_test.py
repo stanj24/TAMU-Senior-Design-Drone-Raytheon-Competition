@@ -198,13 +198,14 @@ pipeline.start(config)
 
 arm_and_takeoff(7)
 condition_yaw(0)
+
 a = take_image()
 ct1 = datetime.datetime.now()
 cv2.imwrite("initial_image_" + str(ct1) + ".jpg", a)
 ev1 = evaluate_image(img_og, a)
 
 with open('logo_validation_data.txt', 'a') as f:
-    f.write("Recorded height is " + str(int(vehicle.location.global_relative_frame.alt)))
+    f.write("Recorded height is " + str(vehicle.location.global_relative_frame.alt))
     f.write("\n")
     f.write(str(ev1) + " pixels matching initially")
     f.write("\n")
@@ -217,9 +218,9 @@ ct2 = datetime.datetime.now()
 ev2 = evaluate_image(img_og, b)
 print(str(ev2) + " pixels matching after moving forward")
 if (ev2 > 15):
-    cv2.imwrite("logo_image_success_" + str(ct2) + ".jpg", a)
+    cv2.imwrite("logo_image_success_" + str(ct2) + ".jpg", b)
     with open('logo_validation_data.txt', 'a') as f:
-        f.write("Recorded height is " + str(int(vehicle.location.global_relative_frame.alt)))
+        f.write("Recorded height is " + str(vehicle.location.global_relative_frame.alt))
         f.write("\n")
         f.write(str(ev2) + " pixels matching after moving forward to look for logo(success)")
         f.write("\n")
@@ -229,9 +230,9 @@ if (ev2 > 15):
     vehicle.mode = VehicleMode("LAND")
     vehicle.close()
 else:
-    cv2.imwrite("logo_image_failed_" + str(ct2) + ".jpg", a)
+    cv2.imwrite("logo_image_failed_" + str(ct2) + ".jpg", b)
     with open('logo_validation_data.txt', 'a') as f:
-        f.write("Recorded height is " + str(int(vehicle.location.global_relative_frame.alt)))
+        f.write("Recorded height is " + str(vehicle.location.global_relative_frame.alt))
         f.write("\n")
         f.write(str(ev2) + " pixels matching after moving forward to look for logo(failed)")
         f.write("\n")
