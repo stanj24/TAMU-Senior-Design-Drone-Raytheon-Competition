@@ -162,40 +162,19 @@ def Move_Upwards(Distance_to_move):
     Travel_point_2 = LocationGlobalRelative(New_straight_point, Current_location_y_new, Altitude)
     vehicle.simple_goto(Travel_point_2)
     time.sleep(10)
-
-
-
-#coords_1 = (52.2296756, 21.0122287)
-#coords_2 = (52.406374, 16.9251681)
-
-#print(geopy.distance.geodesic(coords_1, coords_2).m) #Print out the distance in meters between two points
-
-arm_and_takeoff(7) #Telling drone to take off to specified altitude 
+#Main Code
+arm_and_takeoff(7) #Telling drone to take off to specified altitude, min 20 feet/6 meters, max 30feet/9 meters
 #Getting starting coordinates
 Current_location_x= vehicle.location.global_relative_frame.lat
 Current_location_y= vehicle.location.global_relative_frame.lon
 Starting_coordinates=(Current_location_x,0)
-#Moving left and Right
-Move_Left(20) #Moving to a point 20 meters left from starting location
-Move_Right(20) #Moving to a point 20 meters right from previous location
-print("Time to land")
-vehicle.mode = VehicleMode("LAND") #Drone landing call 
-vehicle.close()
-#Moving straight and backwards code
-'''
-Move_Straight(28)
+Move_Straight(28) #Traveling 30 yards/28 meters
 New_Current_location_x=vehicle.location.global_relative_frame.lat
 New_Current_location_y=vehicle.location.global_relative_frame.lon
 Traveled_X_direction_coord = (New_Current_location_x,0)
 print("Distance Traveled in X Direction:")
 print(geopy.distance.geodesic(Starting_coordinates, Traveled_X_direction_coord).m) #Printing out the drone distance traveled in meters 
-Move_Backwards(28)
-New_Current_location_x_1=vehicle.location.global_relative_frame.lat
-New_Current_location_y_1=vehicle.location.global_relative_frame.lon
-Traveled_X_direction_coord_1 = (New_Current_location_x_1,0)
-print("Distance Traveled in X Direction:")
-print(geopy.distance.geodesic(Traveled_X_direction_coord, Traveled_X_direction_coord_1).m)
 print("Time to land")
 vehicle.mode = VehicleMode("LAND")
 vehicle.close()
-'''
+
