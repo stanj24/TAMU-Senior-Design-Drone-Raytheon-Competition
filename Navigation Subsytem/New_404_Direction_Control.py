@@ -113,7 +113,7 @@ def Move_Left(Distance_to_move):
     print("Flying left")
     Altitude = vehicle.location.global_relative_frame.alt
     #Function defining new travel point that will use the same latitude point but different longitude point in order to move left 
-    Travel_point = LocationGlobalRelative(Current_location_x_new, Longitude_new, 7) 
+    Travel_point = LocationGlobalRelative(Current_location_x_new, Longitude_new, 7) #Putting in the new latitude, longitude, and altitude in order for the drone to travel to
     vehicle.simple_goto(Travel_point) #Telling the drone to go to the new point 
     time.sleep(10) #Drone hover 
 def Move_Right(Distance_to_move):
