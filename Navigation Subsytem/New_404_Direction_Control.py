@@ -65,6 +65,7 @@ def translate_latlong(lat, long, lat_translation_meters, long_translation_meters
     altitude = 0
 
     return long_new #Changed
+#Function to find new latitiude point 
 def translate_up_down(lat, long, lat_translation_meters, long_translation_meters):
     ''' method to move any lat,long point by provided meters in lat and long direction.
     params :
@@ -86,7 +87,7 @@ def translate_up_down(lat, long, lat_translation_meters, long_translation_meters
     altitude = 0
 
     return lat_new #Changed
-def condition_yaw(heading, relative=False): #This function is to set the drone as straight
+def condition_yaw(heading, relative=False): #This function is to set the drone heading 
     if relative:
         is_relative=1 #yaw relative to direction of travel
     else:
@@ -108,12 +109,13 @@ def condition_yaw(heading, relative=False): #This function is to set the drone a
 def Move_Left(Distance_to_move):
     Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
     Current_location_y_new = vehicle.location.global_relative_frame.lon
-    Longitude_new = translate_latlong(Current_location_x_new, Current_location_y_new, 0, -1*Distance_to_move)
+    Longitude_new = translate_latlong(Current_location_x_new, Current_location_y_new, 0, -1*Distance_to_move) #Function finding new longitude point 
     print("Flying left")
     Altitude = vehicle.location.global_relative_frame.alt
-    Travel_point = LocationGlobalRelative(Current_location_x_new, Longitude_new, 7)
-    vehicle.simple_goto(Travel_point)
-    time.sleep(10)
+    #Function defining new travel point that will use the same latitude point but different longitude point in order to move left 
+    Travel_point = LocationGlobalRelative(Current_location_x_new, Longitude_new, 7) 
+    vehicle.simple_goto(Travel_point) #Telling the drone to go to the new point 
+    time.sleep(10) #Drone hover 
 def Move_Right(Distance_to_move):
     Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
     Current_location_y_new = vehicle.location.global_relative_frame.lon
@@ -168,15 +170,16 @@ def Move_Upwards(Distance_to_move):
 
 #print(geopy.distance.geodesic(coords_1, coords_2).m) #Print out the distance in meters between two points
 
-arm_and_takeoff(7)
+arm_and_takeoff(7) #Telling drone to take off to specified altitude 
+#Getting starting coordinates
 Current_location_x= vehicle.location.global_relative_frame.lat
 Current_location_y= vehicle.location.global_relative_frame.lon
 Starting_coordinates=(Current_location_x,0)
 #Moving left and Right
-Move_Left(20)
-Move_Right(20)
+Move_Left(20) #Moving to a point 20 meters left from starting location
+Move_Right(20) #Moving to a point 20 meters right from previous location
 print("Time to land")
-vehicle.mode = VehicleMode("LAND")
+vehicle.mode = VehicleMode("LAND") #Drone landing call 
 vehicle.close()
 #Moving straight and backwards code
 '''
@@ -185,7 +188,7 @@ New_Current_location_x=vehicle.location.global_relative_frame.lat
 New_Current_location_y=vehicle.location.global_relative_frame.lon
 Traveled_X_direction_coord = (New_Current_location_x,0)
 print("Distance Traveled in X Direction:")
-print(geopy.distance.geodesic(Starting_coordinates, Traveled_X_direction_coord).m)
+print(geopy.distance.geodesic(Starting_coordinates, Traveled_X_direction_coord).m) #Printing out the drone distance traveled in meters 
 Move_Backwards(28)
 New_Current_location_x_1=vehicle.location.global_relative_frame.lat
 New_Current_location_y_1=vehicle.location.global_relative_frame.lon
