@@ -17,16 +17,13 @@ parser = argparse.ArgumentParser(description='commands')
 parser.add_argument('--connect', default='127.0.0.1:14551')
 args = parser.parse_args()
 connection_string = args.connect
-
-## ESTABLISH CONNECTION TO THE DRONE ##
+## ESTABLISH CONNECTION ##
 # Connect to the Vehicle
 print('Connecting to vehicle on: %s' % connection_string)
 vehicle = connect(args.connect, baud=57600, wait_ready=True)
 
 
 ## VEHICLE FUNCTIONS ##
-
-# Basic Arm and Takeoff Function
 def arm_and_takeoff(aTargetAltitude):
     print("Basic pre-arm checks")
     # Don't let the user try to arm until autopilot is ready
@@ -125,8 +122,6 @@ def condition_yaw(heading, relative=False):  # This function is to set the drone
 
 
 ## MOVEMENT FUNCTIONS ##
-# Input Parameter - distance in meters 
-
 def forward_GPS_point(rounded_vertical):  # New Going Forward Function - Jeremiah
     Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
     Current_location_y_new = vehicle.location.global_relative_frame.lon
@@ -136,6 +131,7 @@ def forward_GPS_point(rounded_vertical):  # New Going Forward Function - Jeremia
     Travel_point_2 = LocationGlobalRelative(New_straight_point, Current_location_y_new, Altitude)
     vehicle.simple_goto(Travel_point_2)
     time.sleep(10)
+
 
 def backwards_GPS_point(rounded_vertical):  # New Going Function - Jeremiah
     Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
@@ -171,7 +167,7 @@ def right_GPS_point(rounded_horizontal):  # New Going Function - Jeremiah
 
 
 ######################################################
-##  Depth parameters - D435 Camera ## 
+##  Depth parameters - reconfigurable               ##
 ######################################################
 
 # Sensor-specific parameter, for D435: https://www.intelrealsense.com/depth-camera-d435/
@@ -179,16 +175,17 @@ STREAM_TYPE = [rs.stream.depth, rs.stream.color]  # rs2_stream is a types of dat
 FORMAT = [rs.format.z16, rs.format.bgr8]  # rs2_format is identifies how binary data is encoded within a frame
 DEPTH_WIDTH = 640  # Defines the number of columns for each frame or zero for auto resolve
 DEPTH_HEIGHT = 480  # Defines the number of lines for each frame or zero for auto resolve
-COLOR_WIDTH = 640 # Number of columns for the color image 
-COLOR_HEIGHT = 480 # Number of lines for the color image
-FPS = 30 # Frames per second 
-DEPTH_RANGE_M = [0.1, 8.0]  # D435 sensor specifics 
+COLOR_WIDTH = 640
+COLOR_HEIGHT = 480
+FPS = 30
+DEPTH_RANGE_M = [0.1, 8.0]  # Replace with your sensor's specifics, in meter
 
 obstacle_line_height_ratio = 0.3 # [0-1]: 0-Top, 1-Bottom. The height of the horizontal line to find distance to obstacle.
-obstacle_line_thickness_pixel = 10  # [1-DEPTH_HEIGHT]: Number of pixel rows to use to generate the obstacle distance message. 
-                                    #For each column, the scan will return the minimum value for those pixels centered vertically in the image.
+obstacle_line_thickness_pixel = 10  # [1-DEPTH_HEIGHT]: Number of pixel rows to use to generate the obstacle distance message. For each column, the scan will return the minimum value for those pixels centered vertically in the image.
 
-# Filters to improve depth image -- must be applied in order # 
+# List of filters to be applied, in this order.
+# https://github.com/IntelRealSense/librealsense/blob/master/doc/post-processing-filters.md
+
 filters = [
     [True, "Decimation Filter", rs.decimation_filter()],
     [True, "Threshold Filter", rs.threshold_filter()],
@@ -199,17 +196,21 @@ filters = [
     [True, "Disparity to Depth", rs.disparity_transform(False)]
 ]
 
-## COMMENTED OUT TOP 3 FILTERS ## 
+#
+# The filters can be tuned with opencv_depth_filtering.py script, and save the default values to here
+# Individual filters have different options so one have to apply the values accordingly
+#
+
 # decimation_magnitude = 8
 # filters[0][2].set_option(rs.option.filter_magnitude, decimation_magnitude)
-#threshold_min_m = DEPTH_RANGE_M[0]
-#threshold_max_m = DEPTH_RANGE_M[1]
-#if filters[1][0] is True:
-    #filters[1][2].set_option(rs.option.min_distance, threshold_min_m)
-    #filters[1][2].set_option(rs.option.max_distance, threshold_max_m)
 
-## DEBUG MODE -- debug_enable = 1 to display the images as the code runs ## 
-debug_enable = 0  
+threshold_min_m = DEPTH_RANGE_M[0]
+threshold_max_m = DEPTH_RANGE_M[1]
+if filters[1][0] is True:
+    filters[1][2].set_option(rs.option.min_distance, threshold_min_m)
+    filters[1][2].set_option(rs.option.max_distance, threshold_max_m)
+
+debug_enable = 0  # add an option if debug_enable = 1 to display the images
 
 # default exit code is failure - a graceful termination with a
 # terminate signal is possible.
@@ -224,10 +225,10 @@ camera_facing_angle_degree = 0
 device_id = None
 
 # Camera-related variables
-pipe = None # starts the image stream
-depth_scale = 0 # will collect from camera once stream is started 
-colorizer = rs.colorizer() # colorize the depth images receieved so the differences in depth value are clear 
-depth_hfov_deg = 85 
+pipe = None
+depth_scale = 0
+colorizer = rs.colorizer()
+depth_hfov_deg = 85
 depth_vfov_deg = 57
 
 # The name of the display window
@@ -238,12 +239,13 @@ rtsp_streaming_img = None
 vehicle_pitch_rad = 0
 
 # Obstacle distances in front of the sensor, starting from the left in increment degrees to the right
+# See here: https://mavlink.io/en/messages/common.html#OBSTACLE_DISTANCE
 min_depth_cm = int(DEPTH_RANGE_M[0] * 100)  # In cm
 max_depth_cm = int(DEPTH_RANGE_M[1] * 100)  # In cm, should be a little conservative
-distances_array_length = 72 # length of the array that is used to hold all of the depth values in the critical collision zone of the image
+distances_array_length = 72
 angle_offset = None
 increment_f = None
-distances = np.ones((distances_array_length,), dtype=np.uint16) * (max_depth_cm + 1) # create the distances array to hold distance data
+distances = np.ones((distances_array_length,), dtype=np.uint16) * (max_depth_cm + 1)
 
 if debug_enable == 1:
     print("INFO: Debugging option enabled")
@@ -251,8 +253,11 @@ if debug_enable == 1:
 else:
     print("INFO: Debugging option DISABLED")
 
+
+# Functions #
+
 ######################################################
-##  Functions - D435 Camera                       ##
+##  Functions - D4xx cameras                        ##
 ######################################################
 
 # Establish connection to the Realsense camera
@@ -260,35 +265,36 @@ def realsense_connect():
     global pipe, depth_scale
     # Declare RealSense pipe, encapsulating the actual device and sensors
     pipe = rs.pipeline()
+
     # Configure image stream(s)
     config = rs.config()
     if device_id:
         # connect to a specific device ID
         config.enable_device(device_id)
-    # create the depth image stream
     config.enable_stream(STREAM_TYPE[0], DEPTH_WIDTH, DEPTH_HEIGHT, FORMAT[0], FPS)
-    # create the color image stream
+    # if RTSP_STREAMING_ENABLE is True:
     config.enable_stream(STREAM_TYPE[1], COLOR_WIDTH, COLOR_HEIGHT, FORMAT[1], FPS)
 
     # Start streaming with requested config
     profile = pipe.start(config)
 
-    # Getting the depth sensor's depth scale
+    # Getting the depth sensor's depth scale (see rs-align example for explanation)
     depth_sensor = profile.get_device().first_depth_sensor()
     depth_scale = depth_sensor.get_depth_scale()
     print("INFO: Depth scale is: %s" % depth_scale)
     
-    # EXPOSURE SETTINGS -- setting depth image exposure at 1 ms to reduce glare in depth image# 
-    s = profile.get_device().query_sensors()[1] 
-    s.set_option(rs.option.exposure, 1) # set exposure at 1ms to reduce motion artifacts
+    # ADD ON - EXPOSURE #
+    # s = profile.get_device().query_sensors()[1]
+    # s.set_option(rs.option.exposure, 1) # set exposure at 1ms to reduce motion artifacts
+
+
+########################################################################################################################
 
 ### PROCESS FUNCTIONS ##################################################################################################
 
 def take_image3():  # pipeline must be started before calling
-    '''Take a depth image and color image using D435 camera
-        Return both frames and images. '''
     time.sleep(1)
-    # get color frame and depth frame
+    # get color frame
     frames = pipe.wait_for_frames()
     color_frame = frames.get_color_frame()
     depth_frame = frames.get_depth_frame()
@@ -302,8 +308,7 @@ def take_image3():  # pipeline must be started before calling
 
 
 def apply_filters(frame, DEPTH_RANGE_M):
-    ''' Apply post-processing filters to depth image to fill holes
-        Return filtered depth frame.'''
+    ''' Apply post-processing filters to depth image to fill holes'''
     filters = [
         [True, "Decimation Filter", rs.decimation_filter()],
         [True, "Threshold Filter", rs.threshold_filter()],
@@ -356,8 +361,6 @@ def set_obstacle_distance_params():
     #   VFOV=2*atan[h/(2.fy)],
     #   DFOV=2*atan(Diag/2*f),
     #   Diag=sqrt(w^2 + h^2)
-    
-    # calculate the depth fovs based on the camera intrinsics 
     depth_hfov_deg = m.degrees(2 * m.atan(DEPTH_WIDTH / (2 * depth_intrinsics.fx)))
     depth_vfov_deg = m.degrees(2 * m.atan(DEPTH_HEIGHT / (2 * depth_intrinsics.fy)))
     print("INFO: Depth camera HFOV: %0.2f degrees" % depth_hfov_deg)
@@ -370,7 +373,7 @@ def set_obstacle_distance_params():
     print("INFO: OBSTACLE_DISTANCE coverage: from %0.3f to %0.3f degrees" %
           (angle_offset, angle_offset + increment_f * distances_array_length))
 
-    # make sure depth configuration is not out of range 
+    # Sanity check for depth configuration
     if obstacle_line_height_ratio < 0 or obstacle_line_height_ratio > 1:
         print("Please make sure the horizontal position is within [0-1]: %s" % obstacle_line_height_ratio)
         sys.exit()
@@ -403,22 +406,27 @@ def find_obstacle_line_height():
     return obstacle_line_height
 
 
-# Calculate the distances array by dividing the FOV (horizontal) into distances_array_length rays,
-# then pick out the depth value at the pixel corresponding to each ray. 
-# Invalid distance value (below MIN/above MAX) will be replaced with MAX+1.
+# Calculate the distances array by dividing the FOV (horizontal) into $distances_array_length rays,
+# then pick out the depth value at the pixel corresponding to each ray. Based on the definition of
+# the MAVLink messages, the invalid distance value (below MIN/above MAX) will be replaced with MAX+1.
 #
 # [0]    [35]   [71]    <- Output: distances[72]
 #  |      |      |      <- step = width / 72
 #  ---------------      <- horizontal line, or height/2
-#       Camera          <- Input: depth matrix from depth image
+#  \      |      /
+#   \     |     /
+#    \    |    /
+#     \   |   /
+#      \  |  /
+#       \ | /
+#       Camera          <- Input: depth_mat, obtained from depth image
 #
-# Filters applied to depth matrix BEFORE distance array created for stability
-
+# Note that we assume the input depth_mat is already processed by at least hole-filling filter.
+# Otherwise, the output array might not be stable from frame to frame.
+# @njit   # Uncomment to optimize for performance. This uses numba which requires llmvlite (see instruction at the top)
 def distances_from_depth_image(obstacle_line_height, depth_mat, distances, min_depth_m, max_depth_m,
                                obstacle_line_thickness_pixel):
-    '''Create the distance array which is used to find the closest obstacle.
-        Return size 72 array.'''
-    # Depth image dimensions 
+    # Parameters for depth image
     depth_img_width = depth_mat.shape[1]
     depth_img_height = depth_mat.shape[0]
 
@@ -437,7 +445,7 @@ def distances_from_depth_image(obstacle_line_height, depth_mat, distances, min_d
         upper_pixel = center_pixel + obstacle_line_thickness_pixel / 2
         lower_pixel = center_pixel - obstacle_line_thickness_pixel / 2
 
-        # Sanity checks -- checking if the pixels are wihtin the dimensions of the depth image 
+        # Sanity checks
         if upper_pixel > depth_img_height:
             upper_pixel = depth_img_height
         elif upper_pixel < 1:
@@ -447,10 +455,10 @@ def distances_from_depth_image(obstacle_line_height, depth_mat, distances, min_d
         elif lower_pixel < 0:
             lower_pixel = 0
 
-        # Converting depth from uint16_t unit to metric unit. depth_scale is usually 1mm
+        # Converting depth from uint16_t unit to metric unit. depth_scale is usually 1mm following ROS convention.
         # dist_m = depth_mat[int(obstacle_line_height), int(i * step)] * depth_scale
         min_point_in_scan = np.min(depth_mat[int(lower_pixel):int(upper_pixel), int(i * step)])
-        dist_m = min_point_in_scan * depth_scale # in meters
+        dist_m = min_point_in_scan * depth_scale
 
         # Default value, unless overwritten:
         #   A value of max_distance + 1 (cm) means no obstacle is present.
@@ -462,60 +470,50 @@ def distances_from_depth_image(obstacle_line_height, depth_mat, distances, min_d
             distances[i] = dist_m * 100
     return distances
 
+
 def check_obstacles(dist_array):
-    '''Drone checks for collisions.'''
-    # find the closest obstacle in the distance array 
     min_dist = min(dist_array)
     #min_dist = np.min(dist_array[np.nonzero(dist_array)])
     # is obstacle present?
     if min_dist < 200:  # distance to obstacle is less than 2 m away
         print("Obstacle found at distance: ",min_dist," cm")
-        print("OBSTACLE SEEN: LAND")
-        ## CHANGE TO APPROPRIATE MOVEMENT BASED ON TEST 
-        vehicle.mode = VehicleMode("LAND")  # Land the drone immediatel
-        ##################################################
-        vehicle.close()
+        print("OBSTACLE SEEN: MOVE AROUND")
+        # move up function
+        # move left function
+        # move forward function
     else:
-        print("NO OBSTACLE: MOVE BACK")
+        print("NO OBSTACLE: MOVE FORWARD")
         print("closest obstacle: ", min_dist)
-        ## CHANGE TO APPROPRIATE MOVEMENT BASED ON TEST 
-        backwards_GPS_point(5)  # if obstacle is NOT recognized -> move backwards
-        vehicle.mode = VehicleMode("LAND")  # Land the drone
-        #########################################################
-        vehicle.close()
+        # move up function
+        # move forward function
 
 
 # Begin of the main loop
 # start the camera connection
+realsense_connect()
+time.sleep(3)  # give the camera frames a chance to warmup
+arm_and_takeoff(2)  # takeoff to altitude of 5 feet = 1.5 meters
+#condition_yaw(0)  # position drone straight
+forward_GPS_point(5)
+
 count = 0
-while count <= 0:
-    realsense_connect()
-    time.sleep(3)  # give the camera frames a chance to warmup
-    arm_and_takeoff(2)  # takeoff to altitude of 5 feet = 1.5 meters
-    condition_yaw(0)  # position drone straight
-
-    # move forward 5 feet
-    forward_GPS_point(5)
-
+while count <= 1: # 2 iterations
     # take image
-    # depth_frame, color_frame, filtered_frame, depth_mat, color_image = take_image()
     depth_frame, color_frame, depth_image, color_image = take_image3()
-    
-    # apply filters ###########################################################################
+
+    # Apply the filters
     filtered_frame = depth_frame
     for i in range(len(filters)):
         if filters[i][0] is True:
             filtered_frame = filters[i][2].process(filtered_frame)
-    
+
     # Extract depth in matrix form
     depth_data = filtered_frame.as_frame().get_data()
     filt_depth_image = np.asanyarray(depth_data)
-    ###########################################################################################################
-    
+
     # save images
     ct = datetime.datetime.now()
-    
-    # colorize images to save and see depth differences # 
+
     depth_im = np.asanyarray(colorizer.colorize(depth_frame).get_data())
     color_im = np.asanyarray(colorizer.colorize(color_frame).get_data())
 
@@ -524,14 +522,17 @@ while count <= 0:
 
     # Create obstacle distance data from depth image
     obstacle_line_height = find_obstacle_line_height()
-    dist_array = distances_from_depth_image(obstacle_line_height, depth_image, distances, DEPTH_RANGE_M[0], DEPTH_RANGE_M[1],
-                                            obstacle_line_thickness_pixel) # if using FILTERS - replace "depth_image" with "filt_depth_image"
+    dist_array = distances_from_depth_image(obstacle_line_height, filt_depth_image, distances, DEPTH_RANGE_M[0], DEPTH_RANGE_M[1],
+                                            obstacle_line_thickness_pixel)
 
     # check for obstacle and do appropriate movement
     check_obstacles(dist_array)
 
     count += 1
 
+# land the drone
+vehicle.mode = VehicleMode("LAND")  # Land the drone
+vehicle.close()
 
 # stop the camera
 pipe.stop()
