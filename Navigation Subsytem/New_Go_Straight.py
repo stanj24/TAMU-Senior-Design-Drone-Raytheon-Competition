@@ -86,17 +86,6 @@ def translate_up_down(lat, long, lat_translation_meters, long_translation_meters
     altitude = 0
 
     return lat_new #Changed
-def new_go_straight_lat(lat1, lon1,b,d): 
-    origin = geopy.Point(lat1, lon1)
-    destination = geopy.distance.geodesic(kilometers=d).destination(origin, b)
-    lat2 = destination.latitude
-    return lat2
-
-def new_go_straight_long(lat1, lon1,b,d):
-    origin = geopy.Point(lat1, lon1)
-    destination = geopy.distance.geodesic(kilometers=d).destination(origin, b)
-    lon2 = destination.longitude
-    return lon2
 
 
 def condition_yaw(heading, relative=False): #This function is to set the drone to a certain heading
@@ -155,7 +144,7 @@ def Move_Backwards(Distance_to_move):
     vehicle.simple_goto(Travel_point_2)
     time.sleep(20)
 
-#Functions to return the new latitude and longitude points by inputting in starting points and the bearing  
+#Functions to return the new latitude and longitude points by inputting in starting points and the heading in degrees  
 def Move_new_x(Distance_to_move,b):
     Current_location_x_new = vehicle.location.global_relative_frame.lat  # Getting the starting poitns
     Current_location_y_new = vehicle.location.global_relative_frame.lon
@@ -177,10 +166,10 @@ coords_2 = (52.406374, 16.9251681)
 print(geopy.distance.geodesic(coords_1, coords_2).m) #Print out the distance in meters between two points, TEST CODE
 #Main Code 
 arm_and_takeoff(10) #Drone taking off to certain altitude measured in meters
-condition_yaw(45) #Setting the drone in a specified direction/heading measured in degrees
+condition_yaw(45) #Setting the drone in a specified direction/heading measured in degrees from mission planner
 Current_location_x= vehicle.location.global_relative_frame.lat
 Current_location_y= vehicle.location.global_relative_frame.lon
-New_straight_point_x = Move_new_x(30,45) #Finding new latitude points 
+New_straight_point_x = Move_new_x(30,45) #Finding new latitude points by inputting the distance to travel (meters) and direction (degrees)
 New_straight_point_y= Move_new_y(30,45) #Finding new longitude points 
 print("Flying Straight")
 Altitude = vehicle.location.global_relative_frame.alt
