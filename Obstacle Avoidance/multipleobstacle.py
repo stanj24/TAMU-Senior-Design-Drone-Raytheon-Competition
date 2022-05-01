@@ -473,14 +473,24 @@ def distances_from_depth_image(obstacle_line_height, depth_mat, distances, min_d
 
 def check_obstacles(dist_array):
     min_dist = min(dist_array)
+    min_index = dist_array.index(min_dist)
     #min_dist = np.min(dist_array[np.nonzero(dist_array)])
     # is obstacle present?
     if min_dist < 200:  # distance to obstacle is less than 2 m away
         print("Obstacle found at distance: ",min_dist," cm")
         print("OBSTACLE SEEN: MOVE AROUND")
-        # move up function
-        # move left function
-        # move forward function
+        if min_index < 36: # left half of array
+            print("navigate right")
+            # move up function
+            # move right function
+            # move forward function
+            # move left function
+        else:
+            print("navigate left")
+            # move up function
+            # move left function
+            # move forward function
+            # move right function
     else:
         print("NO OBSTACLE: MOVE FORWARD")
         print("closest obstacle: ", min_dist)
